@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { 
   signUp,
+  confirmEmail,
   resendConfirmation,
   login,
   getUserProfile,
@@ -14,6 +15,7 @@ const { authenticate } = require('../middlewares/authMiddleware');
 
 // Rotas públicas
 router.post('/signup', signUp);
+router.get('/confirm', confirmEmail);
 router.post('/resend-confirmation', resendConfirmation);
 router.post('/login', login);
 router.get('/usuario/:id', getUserById);

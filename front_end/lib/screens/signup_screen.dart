@@ -166,9 +166,13 @@ class _SignupScreenState extends State<SignupScreen> {
                 ? response['error']
                 : 'Erro ao criar conta.';
           });
+        } else if (response['success'] == false) {
+          setState(() {
+            _errorMessage = response['error'] ?? 'Erro ao criar conta.';
+          });
         } else {
           setState(() {
-            _successMessage = 'Conta criada! Verifique seu e-mail para confirmar.';
+            _successMessage = response['message'] ?? 'Conta criada! Verifique seu e-mail para confirmar.';
           });
         }
       }
@@ -177,9 +181,11 @@ class _SignupScreenState extends State<SignupScreen> {
         setState(() {
           final msg = e.toString();
           if (msg.contains('already') || msg.contains('já') || msg.contains('registered')) {
-            _errorMessage = 'Este e-mail já está cadastrado.';
+            _errorMessage = 'Este e-mail já está cadastrado. Faça login ou use outro e-mail.';
+          } else if (msg.contains('rate') || msg.contains('limit')) {
+            _errorMessage = 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
           } else {
-            _errorMessage = 'Erro ao criar conta. Tente novamente.';
+            _errorMessage = 'Erro ao criar conta. Verifique seus dados e tente novamente.';
           }
         });
       }

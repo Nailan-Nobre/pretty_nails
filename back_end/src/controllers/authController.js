@@ -1,98 +1,76 @@
 const supabase = require('../config/db')
+const jwt = require('jsonwebtoken')
+const { sendConfirmationEmail } = require('../services/emailService')
+
+const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || 'pretty-nails-secret'
 
 // Cadastro direto na tabela manicures
 exports.signUp = async (req, res) => {
   const { email, password, nome, telefone, estado, cidade } = req.body
-  let createdUserId = null
 
   console.log('Dados recebidos no cadastro:', { email, nome, telefone, estado, cidade })
 
   try {
-    // Validações básicas
     if (!email || !email.includes('@')) {
       throw new Error('E-mail inválido')
     }
 
     if (!password || password.length < 6) {
-      throw new Error('Senha deve ter pelo menos 6 caracteres')
+      throw new Error('A senha deve ter pelo menos 6 caracteres')
     }
 
     if (!nome || nome.trim().length === 0) {
-      throw new Error('Nome é obrigatório')
+      throw new Error('O nome é obrigatório')
     }
 
     if (!telefone || telefone.trim().length === 0) {
-      throw new Error('Telefone é obrigatório')
+      throw new Error('O telefone é obrigatório')
     }
 
     if (!estado || estado.trim().length === 0) {
-      throw new Error('Estado é obrigatório')
+      throw new Error('O estado é obrigatório')
     }
 
     if (!cidade || cidade.trim().length === 0) {
-      throw new Error('Cidade é obrigatória')
+      throw new Error('A cidade é obrigatória')
     }
 
-    const frontendUrl = getFrontendUrl()
-    const redirectTo = `${frontendUrl}/confirmacao.html`
-    const supabaseUrl = process.env.SUPABASE_URL
-    const supabaseAnonKey = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Variáveis do Supabase não configuradas para signup.')
-    }
-
-    const signupResponse = await fetch(`${supabaseUrl}/auth/v1/signup`, {
-      method: 'POST',
-      headers: {
-        apikey: supabaseAnonKey,
-        Authorization: `Bearer ${supabaseAnonKey}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/json'
-      },
-      body: JSON.stringify({
-        email,
-        password,
-        options: {
-          data: {
-            nome,
-            telefone,
-            estado,
-            cidade,
-            tipo: 'MANICURE'
-          },
-          emailRedirectTo: redirectTo
-        }
+    const { data: existingUser } = await supabase.auth.admin.listUsers()
+    const userExists = existingUser?.users?.some(u => u.email === email)
+    if (userExists) {
+      return res.status(400).json({
+        success: false,
+        error: 'Este e-mail já está cadastrado. Faça login ou use outro e-mail.'
       })
+    }
+
+    const { data: authData, error: createError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: false,
+      user_metadata: { nome, telefone, estado, cidade, tipo: 'MANICURE' }
     })
 
-    const signupText = await signupResponse.text()
-    let signupData = null
+    if (createError) throw createError
 
-    if (signupText) {
-      try {
-        signupData = JSON.parse(signupText)
-      } catch (_error) {
-        signupData = { message: signupText }
-      }
-    }
+    const confirmToken = jwt.sign(
+      { userId: authData.user.id, email },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    )
 
-    if (!signupResponse.ok) {
-      const signupMessage = String(signupData?.msg || signupData?.error_description || signupData?.message || '').toLowerCase()
+    const frontendUrl = getFrontendUrl()
+    const confirmLink = `${frontendUrl}/confirmacao.html?token=${confirmToken}`
 
-      if (signupMessage.includes('already registered') || signupMessage.includes('already exists')) {
-        return res.json({
-          success: true,
-          message: 'Já existe um cadastro com este e-mail. Verifique sua caixa de entrada para continuar.'
-        })
-      }
+    const emailSent = await sendConfirmationEmail(email, nome, confirmLink)
 
-      throw new Error(signupData?.msg || signupData?.error_description || signupData?.message || 'Não foi possível criar o cadastro no Supabase.')
+    if (!emailSent) {
+      console.error('Falha ao enviar e-mail de confirmação para:', email)
     }
 
     res.json({
       success: true,
-      message: 'Cadastro realizado com sucesso. Verifique seu e-mail para confirmar sua conta.'
+      message: 'Cadastro realizado! Verifique sua caixa de e-mail para confirmar sua conta.'
     })
 
   } catch (error) {
@@ -101,16 +79,50 @@ exports.signUp = async (req, res) => {
     if (error.message?.toLowerCase().includes('rate limit')) {
       return res.status(429).json({
         success: false,
-        error: 'Muitas tentativas de cadastro. Tente novamente em alguns minutos.',
-        details: 'Erro ao processar cadastro'
+        error: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'
+      })
+    }
+
+    if (error.message?.includes('already') || error.message?.includes('já existe')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Este e-mail já está cadastrado. Faça login ou use outro e-mail.'
       })
     }
 
     res.status(400).json({
       success: false,
-      error: error.message,
-      details: error.details || "Erro ao processar cadastro"
+      error: error.message || 'Erro ao processar cadastro. Tente novamente.'
     })
+  }
+}
+
+// Confirmar e-mail
+exports.confirmEmail = async (req, res) => {
+  const { token } = req.query
+
+  try {
+    if (!token) {
+      return res.status(400).json({ success: false, error: 'Token não fornecido.' })
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET)
+
+    const { error } = await supabase.auth.admin.updateUserById(decoded.userId, {
+      email_confirm: true
+    })
+
+    if (error) throw error
+
+    res.json({ success: true, message: 'E-mail confirmado com sucesso! Você já pode fazer login.' })
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(400).json({ success: false, error: 'Link expirado. Solicite um novo e-mail de confirmação.' })
+    }
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(400).json({ success: false, error: 'Link inválido.' })
+    }
+    res.status(400).json({ success: false, error: 'Erro ao confirmar e-mail. Tente novamente.' })
   }
 }
 
@@ -119,19 +131,43 @@ exports.resendConfirmation = async (req, res) => {
   const { email } = req.body
 
   try {
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email
-    })
+    if (!email || !email.includes('@')) {
+      throw new Error('E-mail inválido')
+    }
 
-    if (error) throw error
+    const { data: existingUser } = await supabase.auth.admin.listUsers()
+    const user = existingUser?.users?.find(u => u.email === email)
 
-    res.json({ success: true, message: 'E-mail de confirmação reenviado.' })
+    if (!user) {
+      return res.json({ success: true, message: 'Se o e-mail estiver cadastrado, você receberá a confirmação.' })
+    }
+
+    if (user.email_confirmed_at) {
+      return res.json({ success: true, message: 'E-mail já confirmado. Você pode fazer login.' })
+    }
+
+    const confirmToken = jwt.sign(
+      { userId: user.id, email },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    )
+
+    const frontendUrl = getFrontendUrl()
+    const confirmLink = `${frontendUrl}/confirmacao.html?token=${confirmToken}`
+    const nome = user.user_metadata?.nome || 'usuária'
+
+    const emailSent = await sendConfirmationEmail(email, nome, confirmLink)
+
+    if (!emailSent) {
+      throw new Error('Falha ao enviar e-mail')
+    }
+
+    res.json({ success: true, message: 'E-mail de confirmação reenviado. Verifique sua caixa de entrada.' })
   } catch (error) {
+    console.error("Erro ao reenviar confirmação:", error)
     res.status(400).json({
       success: false,
-      error: 'Erro ao reenviar e-mail',
-      details: error.message
+      error: 'Erro ao reenviar e-mail. Tente novamente em alguns minutos.'
     })
   }
 }
@@ -141,12 +177,28 @@ exports.login = async (req, res) => {
   const { email, password } = req.body
 
   try {
+    if (!email || !email.includes('@')) {
+      throw new Error('E-mail inválido')
+    }
+
+    if (!password) {
+      throw new Error('Informe sua senha')
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     })
 
-    if (error) throw error
+    if (error) {
+      if (error.message?.includes('Invalid login') || error.message?.includes('invalid_credentials')) {
+        throw new Error('E-mail ou senha incorretos. Verifique e tente novamente.')
+      }
+      if (error.message?.includes('Email not confirmed')) {
+        throw new Error('E-mail ainda não confirmado. Verifique sua caixa de entrada ou reenvie a confirmação.')
+      }
+      throw error
+    }
 
     if (!data.user.email_confirmed_at) {
       throw new Error('E-mail ainda não confirmado. Verifique sua caixa de entrada.')
@@ -201,8 +253,7 @@ exports.login = async (req, res) => {
     console.error("Erro no login:", error)
     res.status(401).json({
       success: false,
-      error: 'Não autorizado',
-      details: error.message
+      error: error.message || 'Erro ao fazer login. Tente novamente.'
     })
   }
 }

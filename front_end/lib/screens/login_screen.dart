@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/theme_provider.dart';
 import '../services/auth_service.dart';
+import '../services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -41,11 +42,20 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/home');
       }
+    } on ApiException catch (e) {
+      setState(() {
+        _errorMessage = e.message;
+      });
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString().contains('Invalid login credentials')
-            ? 'E-mail ou senha incorretos'
-            : 'Erro ao fazer login. Tente novamente.';
+        final msg = e.toString();
+        if (msg.contains('E-mail ou senha incorretos')) {
+          _errorMessage = 'E-mail ou senha incorretos. Verifique e tente novamente.';
+        } else if (msg.contains('não confirmado') || msg.contains('not confirmed')) {
+          _errorMessage = 'E-mail ainda não confirmado. Verifique sua caixa de entrada.';
+        } else {
+          _errorMessage = 'Erro ao fazer login. Tente novamente.';
+        }
       });
     } finally {
       if (mounted) {
