@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: pretty-nails-backend
+    runtime: node
+    rootDir: back_end
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: FRONTEND_URL
+        fromService:
+          name: pretty-nails-frontend
+          type: web
+          property: host
+
+  - type: static
+    name: pretty-nails-frontend
+    rootDir: front_end
+    buildCommand: flutter build web
+    staticPublishPath: build/web
+    envVars:
+      - key: BACKEND_URL
+        fromService:
+          name: pretty-nails-backend
+          type: web
+          property: host

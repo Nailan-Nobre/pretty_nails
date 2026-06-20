@@ -1,0 +1,35 @@
+name: pretty_nails
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  table_calendar: ^3.2.0
+  shared_preferences: ^2.2.2
+  provider: ^6.1.1
+  http: ^1.2.0
+  intl: ^0.20.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: "^0.14.4"
+  change_app_package_name: ^1.5.0
+  flutter_native_splash: ^2.4.8
+
+flutter:
+  uses-material-design: true
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/icon.png"
+  # web:
+  #   generate: true
+  #   image_path: "path/to/image.png"
