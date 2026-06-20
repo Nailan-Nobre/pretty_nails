@@ -60,7 +60,7 @@ exports.signUp = async (req, res) => {
     )
 
     const frontendUrl = getFrontendUrl()
-    const confirmLink = `${frontendUrl}/confirmacao.html?token=${confirmToken}`
+    const confirmLink = `${frontendUrl}?token=${confirmToken}`
 
     const emailSent = await sendConfirmationEmail(email, nome, confirmLink)
 
@@ -153,7 +153,7 @@ exports.resendConfirmation = async (req, res) => {
     )
 
     const frontendUrl = getFrontendUrl()
-    const confirmLink = `${frontendUrl}/confirmacao.html?token=${confirmToken}`
+    const confirmLink = `${frontendUrl}?token=${confirmToken}`
     const nome = user.user_metadata?.nome || 'usuária'
 
     const emailSent = await sendConfirmationEmail(email, nome, confirmLink)
