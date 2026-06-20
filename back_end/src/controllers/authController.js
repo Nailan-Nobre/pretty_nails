@@ -59,8 +59,9 @@ exports.signUp = async (req, res) => {
       { expiresIn: '24h' }
     )
 
+    const backendUrl = getBackendUrl(req)
     const frontendUrl = getFrontendUrl()
-    const confirmLink = `${frontendUrl}/confirmacao.html?token=${confirmToken}`
+    const confirmLink = `${backendUrl}/auth/confirm?token=${confirmToken}&redirect=${encodeURIComponent(frontendUrl + '/confirmacao.html')}`
 
     const emailSent = await sendConfirmationEmail(email, nome, confirmLink)
 
@@ -99,7 +100,10 @@ exports.signUp = async (req, res) => {
 
 // Confirmar e-mail
 exports.confirmEmail = async (req, res) => {
-  const { token } = req.query
+  const { token, redirect } = req.query
+
+  const frontendUrl = getFrontendUrl()
+  const redirectBase = redirect || `${frontendUrl}/confirmacao.html`
 
   try {
     if (!token) {
@@ -114,15 +118,17 @@ exports.confirmEmail = async (req, res) => {
 
     if (error) throw error
 
-    res.json({ success: true, message: 'E-mail confirmado com sucesso! Você já pode fazer login.' })
+    const separator = redirectBase.includes('?') ? '&' : '?'
+    return res.redirect(`${redirectBase}${separator}status=success`)
   } catch (error) {
+    const separator = redirectBase.includes('?') ? '&' : '?'
     if (error.name === 'TokenExpiredError') {
-      return res.status(400).json({ success: false, error: 'Link expirado. Solicite um novo e-mail de confirmação.' })
+      return res.redirect(`${redirectBase}${separator}status=expired`)
     }
     if (error.name === 'JsonWebTokenError') {
-      return res.status(400).json({ success: false, error: 'Link inválido.' })
+      return res.redirect(`${redirectBase}${separator}status=invalid`)
     }
-    res.status(400).json({ success: false, error: 'Erro ao confirmar e-mail. Tente novamente.' })
+    return res.redirect(`${redirectBase}${separator}status=error`)
   }
 }
 
@@ -152,8 +158,9 @@ exports.resendConfirmation = async (req, res) => {
       { expiresIn: '24h' }
     )
 
+    const backendUrl = getBackendUrl(req)
     const frontendUrl = getFrontendUrl()
-    const confirmLink = `${frontendUrl}/confirmacao.html?token=${confirmToken}`
+    const confirmLink = `${backendUrl}/auth/confirm?token=${confirmToken}&redirect=${encodeURIComponent(frontendUrl + '/confirmacao.html')}`
     const nome = user.user_metadata?.nome || 'usuária'
 
     const emailSent = await sendConfirmationEmail(email, nome, confirmLink)
@@ -391,6 +398,17 @@ async function gerarSlugUnico(client, base) {
     tentativa += 1
     slug = `${base}-${tentativa}`
   }
+}
+
+function getBackendUrl(req) {
+  if (req) {
+    return `${req.protocol}://${req.get('host')}`
+  }
+  const url = String(process.env.BACKEND_URL || '').replace(/\/$/, '')
+  if (!url || url === '*' || !url.startsWith('http')) {
+    return 'http://localhost:3000'
+  }
+  return url
 }
 
 function getFrontendUrl() {

@@ -105,15 +105,39 @@
   <div class="sucesso-container">
     <div class="sucesso-box">
       <div class="icone">
-        <i class="fa-solid fa-circle-check"></i>
+        <i class="fa-solid fa-circle-check" id="icone-status"></i>
       </div>
-      <h1>Cadastro realizado com sucesso!</h1>
-      <p>Seu cadastro foi concluído. Agora volte para o login e entre na sua conta.</p>
+      <h1 id="titulo-status">Cadastro realizado com sucesso!</h1>
+      <p id="mensagem-status">Seu cadastro foi concluído. Agora volte para o login e entre na sua conta.</p>
       <div class="botoes">
         <a class="botao-voltar" href="index.html">Ir para o login</a>
       </div>
     </div>
   </div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('status');
+    const titulo = document.getElementById('titulo-status');
+    const mensagem = document.getElementById('mensagem-status');
+    const icone = document.getElementById('icone-status');
+
+    if (status === 'success') {
+      titulo.textContent = 'E-mail confirmado com sucesso!';
+      mensagem.textContent = 'Sua conta foi ativada. Agora faça login para acessar o Pretty Nails.';
+    } else if (status === 'expired') {
+      titulo.textContent = 'Link expirado';
+      mensagem.textContent = 'O link de confirmação expirou. Solicite um novo e-mail de confirmação.';
+      icone.className = 'fa-solid fa-clock';
+    } else if (status === 'invalid') {
+      titulo.textContent = 'Link inválido';
+      mensagem.textContent = 'O link de confirmação é inválido. Solicite um novo e-mail de confirmação.';
+      icone.className = 'fa-solid fa-triangle-exclamation';
+    } else if (status === 'error') {
+      titulo.textContent = 'Erro ao confirmar';
+      mensagem.textContent = 'Ocorreu um erro ao confirmar seu e-mail. Tente novamente.';
+      icone.className = 'fa-solid fa-triangle-exclamation';
+    }
+  </script>
 </body>
 
 </html>
