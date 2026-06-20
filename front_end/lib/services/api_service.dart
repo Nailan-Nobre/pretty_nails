@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiService {
   static const String baseUrl = String.fromEnvironment(
     'BACKEND_URL',
-    defaultValue: 'http://localhost:3000',
+    defaultValue: 'https://pretty-nails-do11.vercel.app/',
   );
 
   static Future<String?> getToken() async {
