@@ -343,6 +343,10 @@ async function gerarSlugUnico(client, base) {
 }
 
 function getFrontendUrl() {
-  return String(process.env.FRONTEND_URL || 'https://pretty-nails-app.vercel.app').replace(/\/$/, '')
+  const url = String(process.env.FRONTEND_URL || '').replace(/\/$/, '')
+  if (!url || url === '*' || !url.startsWith('http')) {
+    return 'https://pretty-nails-u752.vercel.app'
+  }
+  return url
 }
 
