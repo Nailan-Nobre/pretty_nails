@@ -3,6 +3,8 @@ import '../theme/theme_provider.dart';
 import '../models/manicure.dart';
 import '../services/auth_service.dart';
 import 'settings_screen.dart';
+import 'edit_profile_screen.dart';
+import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -216,25 +218,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   Positioned(
                                     right: 0,
                                     bottom: 0,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: colors.cardBg,
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: colors.shadowSm,
-                                            blurRadius: 8,
-                                          ),
-                                        ],
-                                      ),
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                                        ).then((_) => _loadProfile());
+                                      },
                                       child: Container(
-                                        padding: const EdgeInsets.all(4),
+                                        padding: const EdgeInsets.all(6),
                                         decoration: BoxDecoration(
-                                          color: colors.primary,
+                                          color: colors.cardBg,
                                           shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: colors.shadowSm,
+                                              blurRadius: 8,
+                                            ),
+                                          ],
                                         ),
-                                        child: Icon(Icons.edit, color: colors.textLight, size: 14),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: BoxDecoration(
+                                            color: colors.primary,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(Icons.edit, color: colors.textLight, size: 14),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -702,9 +712,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _buildMenuItem(
                       icon: Icons.person_outline,
                       title: 'Meu Perfil',
-                      subtitle: 'Visualize e edite seu perfil',
+                      subtitle: 'Editar perfil',
                       colors: colors,
-                      onTap: () => Navigator.pop(context),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                        ).then((_) => _loadProfile());
+                      },
                     ),
                     _buildMenuItem(
                       icon: Icons.calendar_today_outlined,
@@ -847,7 +863,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () async {
               await AuthService.logout();
               if (context.mounted) {
-                Navigator.of(context).pushReplacementNamed('/login');
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
               }
             },
             child: Text('Sair', style: TextStyle(color: colors.danger)),

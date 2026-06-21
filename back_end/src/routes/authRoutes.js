@@ -8,7 +8,8 @@ const {
   getUserProfile,
   getUserById,
   getManicureBySlug,
-  updateProfile
+  updateProfile,
+  refreshToken
 } = require('../controllers/authController');
 const uploadController = require('../controllers/uploadController');
 const { authenticate } = require('../middlewares/authMiddleware');
@@ -18,6 +19,7 @@ router.post('/signup', signUp);
 router.get('/confirm', confirmEmail);
 router.post('/resend-confirmation', resendConfirmation);
 router.post('/login', login);
+router.post('/refresh', refreshToken);
 router.get('/usuario/:id', getUserById);
 router.get('/manicure/:slug', getManicureBySlug);
 

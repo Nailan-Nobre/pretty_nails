@@ -372,6 +372,36 @@ exports.updateProfile = async (req, res) => {
   }
 }
 
+// Refresh token
+exports.refreshToken = async (req, res) => {
+  const { refresh_token } = req.body
+
+  try {
+    if (!refresh_token) {
+      return res.status(400).json({ success: false, error: 'Refresh token não fornecido' })
+    }
+
+    const { data, error } = await supabase.auth.refreshSession({
+      refresh_token
+    })
+
+    if (error) throw error
+
+    res.json({
+      success: true,
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+    })
+
+  } catch (error) {
+    console.error("Erro ao refresh token:", error)
+    res.status(401).json({
+      success: false,
+      error: 'Sessão expirada. Faça login novamente.'
+    })
+  }
+}
+
 function slugify(text) {
   return text
     .toLowerCase()

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../theme/theme_provider.dart';
 import '../services/auth_service.dart';
+import 'login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -481,7 +482,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.pop(context);
               await AuthService.logout();
               if (context.mounted) {
-                Navigator.of(context).pushReplacementNamed('/login');
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
               }
             },
             child: Text('Sair', style: TextStyle(color: colors.danger)),

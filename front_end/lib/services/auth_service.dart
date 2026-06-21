@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/manicure.dart';
 import 'api_service.dart';
 
@@ -10,6 +11,9 @@ class AuthService {
 
     if (response['access_token'] != null) {
       await ApiService.setToken(response['access_token']);
+    }
+    if (response['refresh_token'] != null) {
+      await ApiService.setRefreshToken(response['refresh_token']);
     }
 
     return response;
@@ -36,25 +40,34 @@ class AuthService {
 
   static Future<Manicure> getProfile() async {
     final response = await ApiService.get('/auth/profile');
-    return Manicure.fromJson(response);
+    return Manicure.fromJson(response['user']);
   }
 
   static Future<Manicure> updateProfile(Map<String, dynamic> data) async {
     final response = await ApiService.put('/auth/profile', body: data);
-    return Manicure.fromJson(response);
+    return Manicure.fromJson(response['user']);
+  }
+
+  static Future<String> uploadPhoto(String base64Image, {String? fotoAntiga}) async {
+    final response = await ApiService.post('/auth/upload', body: {
+      'image': base64Image,
+      'fotoAntiga': fotoAntiga,
+    });
+    return response['url'];
   }
 
   static Future<Manicure?> getManicureBySlug(String slug) async {
     try {
       final response = await ApiService.get('/auth/manicure/$slug');
-      return Manicure.fromJson(response);
+      return Manicure.fromJson(response['manicure']);
     } catch (e) {
       return null;
     }
   }
 
   static Future<void> logout() async {
-    await ApiService.clearToken();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token');
   }
 
   static Future<bool> isLoggedIn() async {
