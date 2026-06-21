@@ -679,7 +679,7 @@
 
       const dateVal = document.getElementById('dataDia').value;
       const timeVal = document.getElementById('horarioSelect').value;
-      const dataHora = new Date(`${dateVal}T${timeVal}:00`).toISOString();
+      const dataHora = `${dateVal}T${timeVal}:00`;
 
       const body = {
         slug: manicureData.slug,

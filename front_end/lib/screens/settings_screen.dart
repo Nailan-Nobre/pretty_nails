@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/theme_provider.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
+import '../services/api_service.dart';
 import 'login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -44,6 +45,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setString('notif_type', type);
     await prefs.setBool('notif_app', _notifEnabled && type == 'app');
     setState(() => _notifType = type);
+
+    try {
+      await ApiService.put('/auth/profile', body: {
+        'notificacoes_email': _notifEnabled && type == 'email',
+      });
+    } catch (_) {}
 
     if (type == 'app' && _notifEnabled) {
       final granted = await NotificationService.requestPermission();

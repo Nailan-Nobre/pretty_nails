@@ -135,7 +135,7 @@ exports.criarAgendamento = async (req, res) => {
 
         const manicureQuery = supabase
             .from('manicures')
-            .select('id, nome, email, foto, slug, ativa')
+            .select('id, nome, email, foto, slug, ativa, notificacoes_email')
             .limit(1);
 
         const { data: manicure, error: manicureError } = slug
@@ -235,10 +235,11 @@ exports.criarAgendamento = async (req, res) => {
             linkAgendamento
         });
 
-        await Promise.allSettled([
-            sendEmail(manicure.email, emailManicureSubject, emailManicureHtml),
-            sendEmail(clienteEmail, emailClienteSubject, emailClienteHtml)
-        ]);
+        const emailsToSend = [sendEmail(clienteEmail, emailClienteSubject, emailClienteHtml)];
+        if (manicure.notificacoes_email !== false) {
+            emailsToSend.push(sendEmail(manicure.email, emailManicureSubject, emailManicureHtml));
+        }
+        await Promise.allSettled(emailsToSend);
 
         res.status(201).json({
             success: true,

@@ -6,6 +6,7 @@ import 'api_service.dart';
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   static Timer? _pollTimer;
+  static int _notificationId = 0;
 
   static Future<void> init() async {
     const androidSettings = AndroidInitializationSettings('@mipmap/launcher_icon');
@@ -15,7 +16,21 @@ class NotificationService {
       requestSoundPermission: false,
     );
     const settings = InitializationSettings(android: androidSettings, iOS: iosSettings);
-    await _plugin.initialize(settings);
+    await _plugin.initialize(settings, onDidReceiveNotificationResponse: (details) {});
+
+    final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    if (android != null) {
+      await android.createNotificationChannel(
+        const AndroidNotificationChannel(
+          'agendamentos',
+          'Agendamentos',
+          description: 'Notificações de novos agendamentos',
+          importance: Importance.high,
+          enableVibration: true,
+          playSound: true,
+        ),
+      );
+    }
   }
 
   static Future<bool> requestPermission() async {
@@ -34,6 +49,7 @@ class NotificationService {
 
   static Future<void> startPolling() async {
     _pollTimer?.cancel();
+    await _checkNewAppointments();
     _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) => _checkNewAppointments());
   }
 
@@ -50,33 +66,37 @@ class NotificationService {
     try {
       final response = await ApiService.get('/api/agendamentos/pendentes');
       final list = response['agendamentos'] ?? [];
-      final now = DateTime.now();
 
       for (final item in (list as List)) {
         final createdAt = item['created_at'];
         if (createdAt == null) continue;
         final created = DateTime.parse(createdAt);
+
         if (_lastCheck != null && !created.isAfter(_lastCheck!)) continue;
 
         final clienteNome = item['cliente_nome'] ?? 'Cliente';
         final servico = item['servico'] ?? '';
-        _showNotification('Novo agendamento', '$clienteNome agendou $servico');
+        await _showNotification('Novo agendamento', '$clienteNome agendou $servico');
       }
 
-      _lastCheck = now;
+      _lastCheck = DateTime.now();
     } catch (_) {}
   }
 
   static Future<void> _showNotification(String title, String body) async {
-    const androidDetails = AndroidNotificationDetails(
+    _notificationId++;
+
+    final androidDetails = AndroidNotificationDetails(
       'agendamentos',
       'Agendamentos',
       channelDescription: 'Notificações de novos agendamentos',
       importance: Importance.high,
       priority: Priority.high,
+      enableVibration: true,
+      playSound: true,
     );
-    const details = NotificationDetails(android: androidDetails);
-    await _plugin.show(0, title, body, details);
+    final details = NotificationDetails(android: androidDetails);
+    await _plugin.show(_notificationId, title, body, details);
   }
 
   static Future<void> showLocal(String title, String body) async {
