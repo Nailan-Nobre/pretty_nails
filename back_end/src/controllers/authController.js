@@ -414,7 +414,7 @@ function getBackendUrl(req) {
 function getFrontendUrl() {
   const url = String(process.env.FRONTEND_URL || '').replace(/\/$/, '')
   if (!url || url === '*' || !url.startsWith('http')) {
-    return 'https://pretty-nails-u752.vercel.app'
+    return 'https://pretty-nails-app.vercel.app'
   }
   return url
 }
