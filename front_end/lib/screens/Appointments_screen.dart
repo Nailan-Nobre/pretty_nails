@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../theme/theme_provider.dart';
@@ -18,16 +19,19 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
   List<Agendamento> _confirmados = [];
   List<Agendamento> _historico = [];
   bool _loading = true;
+  Timer? _autoRefreshTimer;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _loadAppointments();
+    _autoRefreshTimer = Timer.periodic(const Duration(minutes: 1), (_) => _checkAutoComplete());
   }
 
   @override
   void dispose() {
+    _autoRefreshTimer?.cancel();
     _tabController.dispose();
     super.dispose();
   }
@@ -51,6 +55,24 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
         setState(() => _loading = false);
       }
     }
+  }
+
+  Future<void> _checkAutoComplete() async {
+    final now = DateTime.now();
+    for (final a in _confirmados) {
+      if (a.dataHora.isBefore(now)) {
+        try {
+          await AgendamentoService.atualizarStatus(a.id, AgendamentoStatus.concluido);
+        } catch (_) {}
+      }
+    }
+    if (_confirmados.any((a) => a.dataHora.isBefore(now))) {
+      await _loadAppointments();
+    }
+  }
+
+  bool _isBeforeSchedule(Agendamento appointment) {
+    return appointment.dataHora.isAfter(DateTime.now());
   }
 
   Color _getStatusColor(AgendamentoStatus status, AppColors colors) {
@@ -335,7 +357,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                 if (appointment.status == AgendamentoStatus.confirmado) ...[
                   _buildActionButton(
                     'Concluir', Icons.done_all, colors.info, colors,
-                    () => _updateStatus(appointment, AgendamentoStatus.concluido),
+                    _isBeforeSchedule(appointment) ? null : () => _updateStatus(appointment, AgendamentoStatus.concluido),
                   ),
                   const SizedBox(width: 8),
                   _buildActionButton(
@@ -356,21 +378,24 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     IconData icon,
     Color color,
     AppColors colors,
-    VoidCallback onPressed,
+    VoidCallback? onPressed,
   ) {
+    final isDisabled = onPressed == null;
     return Expanded(
       child: ElevatedButton.icon(
         onPressed: onPressed,
         icon: Icon(icon, size: 16),
         label: Text(label, style: const TextStyle(fontSize: 13)),
         style: ElevatedButton.styleFrom(
-          backgroundColor: color.withValues(alpha: 0.15),
-          foregroundColor: color,
+          backgroundColor: isDisabled ? colors.bgTertiary : color.withValues(alpha: 0.15),
+          foregroundColor: isDisabled ? colors.textSecondary : color,
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
-            side: BorderSide(color: color.withValues(alpha: 0.3)),
+            side: BorderSide(
+              color: isDisabled ? colors.borderColor : color.withValues(alpha: 0.3),
+            ),
           ),
         ),
       ),

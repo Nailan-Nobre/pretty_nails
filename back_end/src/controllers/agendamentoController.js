@@ -714,7 +714,8 @@ exports.atualizarStatusAgendamento = async (req, res) => {
                 agendamento.servico,
                 agendamento.data_hora,
                 status,
-                agendamento.observacoes
+                agendamento.observacoes,
+                id
             );
 
             await sendEmail(
@@ -740,31 +741,32 @@ exports.atualizarStatusAgendamento = async (req, res) => {
 };
 
 // Função auxiliar para gerar o template de e-mail de status
-function getStatusEmailTemplate(clienteNome, manicureNome, servico, dataHora, status, observacoes) {
+function getStatusEmailTemplate(clienteNome, manicureNome, servico, dataHora, status, observacoes, agendamentoId) {
+    const baseUrl = 'https://pretty-nails-app.vercel.app';
     const statusMessages = {
         'confirmado': {
             title: 'Agendamento Confirmado',
             message: `Seu agendamento com ${manicureNome} foi confirmado.`,
             buttonText: 'Ver Detalhes',
-            buttonUrl: 'https://pretty-nails-app.vercel.app/cadastro-e-login/cadastro-e-login.html'
+            buttonUrl: `${baseUrl}/avaliacao.html?id=${agendamentoId}`
         },
         'cancelado': {
             title: 'Agendamento Cancelado',
             message: `Seu agendamento com ${manicureNome} foi cancelado.`,
             buttonText: 'Agendar Novamente',
-            buttonUrl: 'https://pretty-nails-app.vercel.app/cadastro-e-login/cadastro-e-login.html'
+            buttonUrl: `${baseUrl}`
         },
         'concluido': {
             title: 'Atendimento Concluído',
-            message: `Seu atendimento com ${manicureNome} foi concluído com sucesso!`,
+            message: `Seu atendimento com ${manicureNome} foi concluído com sucesso! Avalie seu atendimento.`,
             buttonText: 'Avaliar Atendimento',
-            buttonUrl: 'https://pretty-nails-app.vercel.app/cadastro-e-login/cadastro-e-login.html'
+            buttonUrl: `${baseUrl}/avaliacao.html?id=${agendamentoId}`
         },
         'recusado': {
             title: 'Agendamento Recusado',
             message: `Seu agendamento com ${manicureNome} foi recusado.`,
             buttonText: 'Agendar Novamente',
-            buttonUrl: 'https://pretty-nails-app.vercel.app/cadastro-e-login/cadastro-e-login.html'
+            buttonUrl: `${baseUrl}`
         },
     };
 

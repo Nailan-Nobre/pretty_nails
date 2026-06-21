@@ -149,22 +149,14 @@ exports.getFeedbacksPorManicure = async (req, res) => {
 
 exports.getAgendamentoComFeedback = async (req, res) => {
   const { id } = req.params;
-  const userId = req.user.id;
 
   try {
     const { data: agendamento, error } = await supabase
       .from('agendamentos')
       .select(`
         *,
-        manicure:manicures!manicure_id(id, nome, foto, estrelas),
-        feedbacks(
-          id, 
-          estrelas, 
-          comentario,
-          created_at
-        )
+        manicure:manicures!manicure_id(id, nome, foto, estrelas, slug)
       `)
-      .or(`manicure_id.eq.${userId}`)
       .eq('id', id)
       .single();
 

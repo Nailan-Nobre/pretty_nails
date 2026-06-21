@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Avaliar Atendimento - Pretty Nails</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    :root {
+      --primary: #FF6B6B;
+      --primary-light: #FFB3B3;
+      --primary-dark: #E85555;
+      --bg: #FFF5F5;
+      --card: #FFFFFF;
+      --text: #2D2D2D;
+      --text-secondary: #777777;
+      --border: #E8E8E8;
+      --success: #4CAF50;
+      --danger: #F44336;
+      --warning: #FFC107;
+      --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      padding: 24px 16px;
+      text-align: center;
+    }
+    .header h1 { font-size: 22px; font-weight: 700; }
+    .header p { font-size: 14px; opacity: 0.9; margin-top: 4px; }
+    .container { max-width: 600px; margin: 0 auto; padding: 16px; }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .loading { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+    .loading i { font-size: 40px; color: var(--primary); margin-bottom: 12px; animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .error-container { text-align: center; padding: 60px 20px; }
+    .error-container i { font-size: 50px; color: var(--danger); margin-bottom: 16px; }
+    .error-container h2 { font-size: 20px; color: var(--text); margin-bottom: 8px; }
+    .error-container p { font-size: 14px; color: var(--text-secondary); }
+    .manicure-info { text-align: center; margin-bottom: 20px; }
+    .manicure-photo {
+      width: 80px; height: 80px; border-radius: 50%; object-fit: cover;
+      border: 3px solid var(--primary-light); margin-bottom: 8px;
+    }
+    .manicure-name { font-size: 18px; font-weight: 700; color: var(--primary); }
+    .details-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+      margin-bottom: 20px;
+    }
+    .detail-item { padding: 12px; background: #F9F9F9; border-radius: 10px; }
+    .detail-label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; }
+    .detail-value { font-size: 14px; color: var(--text); font-weight: 500; margin-top: 2px; }
+    .stars-section { text-align: center; margin-bottom: 24px; }
+    .stars-section h3 { font-size: 16px; color: var(--text); margin-bottom: 12px; }
+    .stars-container { display: flex; justify-content: center; gap: 8px; }
+    .star-btn {
+      font-size: 36px; cursor: pointer; color: var(--border);
+      transition: color 0.2s, transform 0.2s;
+      background: none; border: none;
+    }
+    .star-btn.active { color: var(--warning); transform: scale(1.1); }
+    .star-btn:hover { transform: scale(1.15); }
+    .star-label { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .form-group textarea {
+      width: 100%; padding: 12px 14px; border: 1.5px solid var(--border);
+      border-radius: 10px; font-size: 14px; font-family: inherit;
+      color: var(--text); background: var(--card); resize: vertical; min-height: 100px;
+    }
+    .form-group textarea:focus { outline: none; border-color: var(--primary); }
+    .submit-btn {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white; border: none; border-radius: 12px;
+      font-size: 16px; font-weight: 700; cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 12px rgba(255, 107, 107, 0.35);
+    }
+    .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(255, 107, 107, 0.45); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .success-container { text-align: center; padding: 40px 20px; }
+    .success-container i { font-size: 60px; color: var(--success); margin-bottom: 16px; }
+    .success-container h2 { font-size: 22px; color: var(--text); margin-bottom: 8px; }
+    .success-container p { font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; line-height: 1.5; }
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: var(--danger); color: white; padding: 12px 24px;
+      border-radius: 10px; font-size: 14px; font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); z-index: 999; display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1><i class="fa-solid fa-star"></i> Pretty Nails</h1>
+    <p>Avalie seu atendimento</p>
+  </div>
+  <div class="container" id="app">
+    <div class="loading"><i class="fa-solid fa-spinner"></i><p>Carregando...</p></div>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script>
+    const API_BASE = 'https://pretty-nails-do11.vercel.app';
+    let agendamentoData = null;
+    let selectedRating = 0;
+
+    const ratingLabels = ['', 'Ruim', 'Razoável', 'Bom', 'Muito Bom', 'Excelente'];
+
+    async function init() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      if (!id) { showError('Link inválido', 'Não foi possível identificar o agendamento.'); return; }
+      try {
+        const response = await fetch(`${API_BASE}/feedback/agendamento/${id}`);
+        const data = await response.json();
+        if (!data.success || !data.agendamento) { showError('Agendamento não encontrado', 'Verifique o link no e-mail.'); return; }
+        agendamentoData = data.agendamento;
+        if (agendamentoData.status !== 'concluido') { showError('Atendimento não concluído', 'Só é possível avaliar atendimentos concluídos.'); return; }
+        renderPage();
+      } catch (err) { showError('Erro de conexão', 'Verifique sua internet e tente novamente.'); }
+    }
+
+    function showError(title, message) {
+      document.getElementById('app').innerHTML = `<div class="error-container"><i class="fa-solid fa-circle-exclamation"></i><h2>${title}</h2><p>${message}</p></div>`;
+    }
+
+    function renderPage() {
+      const a = agendamentoData;
+      const m = a.manicure || {};
+      const photoHtml = m.foto
+        ? `<img src="${m.foto}" alt="${m.nome}" class="manicure-photo" onerror="this.style.display='none'">`
+        : '';
+      const dataHora = new Date(a.data_hora).toLocaleString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+      document.getElementById('app').innerHTML = `
+        <div class="card">
+          <div class="manicure-info">
+            ${photoHtml}
+            <div class="manicure-name">${m.nome || 'Manicure'}</div>
+          </div>
+          <div class="details-grid">
+            <div class="detail-item"><div class="detail-label">Serviço</div><div class="detail-value">${a.servico || ''}</div></div>
+            <div class="detail-item"><div class="detail-label">Data</div><div class="detail-value">${dataHora}</div></div>
+            <div class="detail-item"><div class="detail-label">Cliente</div><div class="detail-value">${a.cliente_nome || ''}</div></div>
+            <div class="detail-item"><div class="detail-label">Status</div><div class="detail-value">Concluído</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="stars-section">
+            <h3>Como foi o atendimento?</h3>
+            <div class="stars-container" id="starsContainer">
+              ${[1,2,3,4,5].map(i => `<button class="star-btn" data-rating="${i}" onclick="setRating(${i})"><i class="fa-solid fa-star"></i></button>`).join('')}
+            </div>
+            <div class="star-label" id="ratingLabel">Toque nas estrelas para avaliar</div>
+          </div>
+          <div class="form-group">
+            <label for="comentario">Deixe um comentário (opcional)</label>
+            <textarea id="comentario" placeholder="Como foi sua experiência?"></textarea>
+          </div>
+          <button class="submit-btn" id="submitBtn" onclick="submitFeedback()" disabled>
+            <i class="fa-solid fa-paper-plane"></i> Enviar Avaliação
+          </button>
+        </div>`;
+    }
+
+    function setRating(rating) {
+      selectedRating = rating;
+      document.querySelectorAll('.star-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i < rating);
+      });
+      document.getElementById('ratingLabel').textContent = ratingLabels[rating];
+      document.getElementById('submitBtn').disabled = false;
+    }
+
+    async function submitFeedback() {
+      if (selectedRating === 0) { showToast('Selecione uma avaliação'); return; }
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+      try {
+        const response = await fetch(`${API_BASE}/feedback`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            agendamento_id: agendamentoData.id,
+            estrelas: selectedRating,
+            comentario: document.getElementById('comentario').value.trim() || null
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Erro ao enviar avaliação');
+        document.getElementById('app').innerHTML = `
+          <div class="card">
+            <div class="success-container">
+              <i class="fa-solid fa-circle-check"></i>
+              <h2>Obrigada pela avaliação!</h2>
+              <p>Sua opinião ajuda a manicure <strong>${agendamentoData.manicure?.nome || ''}</strong> a melhorar ainda mais.</p>
+            </div>
+          </div>`;
+      } catch (err) {
+        showToast(err.message);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar Avaliação';
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 4000);
+    }
+
+    init();
+  </script>
+</body>
+</html>
