@@ -36,10 +36,37 @@ class AgendamentoService {
   }
 
   static Future<Map<String, dynamic>> obterEstatisticas() async {
-    return await ApiService.get('/api/agendamentos/estatisticas');
+    final response = await ApiService.get('/api/agendamentos/estatisticas');
+    final estatisticas = response['estatisticas'] ?? {};
+    final concluidos = estatisticas['totalConcluidos'] ?? 0;
+    final cancelados = estatisticas['totalCancelados'] ?? 0;
+    return {
+      'total': concluidos + cancelados,
+      'pendentes': 0,
+      'confirmados': 0,
+      'concluidos': concluidos,
+    };
   }
 
   static Future<Map<String, dynamic>> obterHistoricoEstatisticas(int ano) async {
-    return await ApiService.get('/api/agendamentos/historico-estatisticas?ano=$ano');
+    final response = await ApiService.get('/api/agendamentos/historico-estatisticas?ano=$ano');
+    final historico = response['historico'] ?? {};
+    final labels = historico['labels'] ?? [];
+    final dadosConcluidos = historico['dadosConcluidos'] ?? [];
+    final dadosCancelados = historico['dadosCancelados'] ?? [];
+
+    final meses = <String, int>{};
+    for (int i = 0; i < labels.length; i++) {
+      final total = (dadosConcluidos[i] ?? 0) + (dadosCancelados[i] ?? 0);
+      meses['${i + 1}'] = total;
+    }
+
+    return {
+      'ano': ano,
+      'meses': meses,
+      'labels': labels,
+      'dadosConcluidos': dadosConcluidos,
+      'dadosCancelados': dadosCancelados,
+    };
   }
 }
