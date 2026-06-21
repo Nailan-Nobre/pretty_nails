@@ -1,5 +1,8 @@
 {
   "buildCommand": "bash build.sh",
   "outputDirectory": "build/web",
-  "framework": null
+  "framework": null,
+  "rewrites": [
+    { "source": "/agendamento/:slug", "destination": "/agendamento.html" }
+  ]
 }

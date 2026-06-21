@@ -11,7 +11,9 @@ class Manicure {
   final double? estrelas;
   final bool? ativa;
   final List<int>? diasTrabalho;
-  final List<String>? horarios;
+  final List<Map<String, dynamic>>? horarios;
+  final int? intervalo;
+  final Map<String, List<Map<String, dynamic>>>? horariosPorDia;
   final List<Map<String, dynamic>>? servicos;
   final String? regras;
   final DateTime? createdAt;
@@ -31,6 +33,8 @@ class Manicure {
     this.ativa,
     this.diasTrabalho,
     this.horarios,
+    this.intervalo,
+    this.horariosPorDia,
     this.servicos,
     this.regras,
     this.createdAt,
@@ -38,6 +42,20 @@ class Manicure {
   });
 
   factory Manicure.fromJson(Map<String, dynamic> json) {
+    Map<String, List<Map<String, dynamic>>>? parseHorariosPorDia(dynamic value) {
+      if (value == null) return null;
+      if (value is! Map) return null;
+      final result = <String, List<Map<String, dynamic>>>{};
+      value.forEach((key, val) {
+        if (val is List) {
+          result[key.toString()] = val
+              .map((e) => Map<String, dynamic>.from(e is String ? {'inicio': e, 'fim': ''} : e))
+              .toList();
+        }
+      });
+      return result;
+    }
+
     return Manicure(
       id: json['id'] ?? '',
       email: json['email'] ?? '',
@@ -54,8 +72,14 @@ class Manicure {
           ? List<int>.from(json['dias_trabalho'])
           : null,
       horarios: json['horarios'] != null
-          ? List<String>.from(json['horarios'])
+          ? (json['horarios'] is List)
+              ? List<Map<String, dynamic>>.from(
+                  (json['horarios'] as List).map((e) => Map<String, dynamic>.from(e is String ? {'inicio': e, 'fim': ''} : e)),
+                )
+              : null
           : null,
+      intervalo: json['intervalo'] != null ? (json['intervalo'] as num).toInt() : null,
+      horariosPorDia: parseHorariosPorDia(json['horarios_por_dia']),
       servicos: json['servicos'] != null
           ? List<Map<String, dynamic>>.from(json['servicos'])
           : null,
@@ -84,6 +108,8 @@ class Manicure {
       'ativa': ativa,
       'dias_trabalho': diasTrabalho,
       'horarios': horarios,
+      'intervalo': intervalo,
+      'horarios_por_dia': horariosPorDia,
       'servicos': servicos,
       'regras': regras,
     };

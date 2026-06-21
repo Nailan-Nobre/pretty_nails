@@ -30,7 +30,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _base64Image;
 
   List<int> _diasTrabalho = [];
-  List<String> _horarios = [];
+  List<Map<String, dynamic>> _horarios = [];
+  int _intervalo = 30;
+  Map<String, List<Map<String, dynamic>>> _horariosPorDia = {};
   List<Map<String, dynamic>> _servicos = [];
 
   @override
@@ -63,7 +65,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _bioController.text = manicure.bio ?? '';
           _regrasController.text = manicure.regras ?? '';
           _diasTrabalho = List<int>.from(manicure.diasTrabalho ?? []);
-          _horarios = List<String>.from(manicure.horarios ?? []);
+          _horarios = (manicure.horarios ?? []).map((h) => Map<String, dynamic>.from(h)).toList();
+          _intervalo = manicure.intervalo ?? 30;
+          _horariosPorDia = (manicure.horariosPorDia ?? {}).map(
+            (key, value) => MapEntry(key, value.map((h) => Map<String, dynamic>.from(h)).toList()),
+          );
           _servicos = List<Map<String, dynamic>>.from(
             (manicure.servicos ?? []).map((s) => Map<String, dynamic>.from(s)),
           );
@@ -145,6 +151,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'regras': _regrasController.text.trim(),
         'dias_trabalho': _diasTrabalho,
         'horarios': _horarios,
+        'intervalo': _intervalo,
+        'horarios_por_dia': _horariosPorDia,
         'servicos': _servicos,
       };
 
@@ -251,9 +259,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             const SizedBox(height: 12),
             _buildDiasTrabalho(colors),
             const SizedBox(height: 20),
-            _buildSectionTitle('Horários', colors),
+            _buildSectionTitle('Horários de Trabalho', colors),
+            const SizedBox(height: 8),
+            _buildIntervaloInfo(colors),
+            const SizedBox(height: 12),
+            _buildIntervaloSelector(colors),
             const SizedBox(height: 12),
             _buildHorarios(colors),
+            const SizedBox(height: 20),
+            _buildSectionTitle('Exceções por Dia', colors),
+            const SizedBox(height: 8),
+            _buildExcecoesInfo(colors),
+            const SizedBox(height: 12),
+            _buildExcecoes(colors),
             const SizedBox(height: 20),
             _buildSectionTitle('Serviços', colors),
             const SizedBox(height: 12),
@@ -422,13 +440,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildDiasTrabalho(AppColors colors) {
-    final weekDays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    final weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: List.generate(weekDays.length, (index) {
-        final dayNum = index + 1;
+        final dayNum = index;
         final isActive = _diasTrabalho.contains(dayNum);
         return GestureDetector(
           onTap: () {
@@ -475,12 +493,69 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
+  Widget _buildIntervaloInfo(AppColors colors) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: colors.primary, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Defina os períodos em que você trabalha (ex: 8:00 às 12:00 e 14:00 às 18:00). '
+              'O intervalo define a duração de cada atendimento — os horários disponíveis para agendamento serão gerados automaticamente.',
+              style: TextStyle(fontSize: 12, color: colors.textSecondary, height: 1.4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIntervaloSelector(AppColors colors) {
+    final intervals = [15, 20, 30, 40, 45, 60];
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.cardBg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.borderColor),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.timer_outlined, color: colors.primary, size: 18),
+          const SizedBox(width: 8),
+          Text('Intervalo: ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.textPrimary)),
+          const SizedBox(width: 4),
+          DropdownButton<int>(
+            value: _intervalo,
+            underline: const SizedBox(),
+            isDense: true,
+            style: TextStyle(fontSize: 13, color: colors.primary, fontWeight: FontWeight.w600),
+            items: intervals.map((i) => DropdownMenuItem(value: i, child: Text('$i min'))).toList(),
+            onChanged: (v) {
+              if (v != null) setState(() => _intervalo = v);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHorarios(AppColors colors) {
     return Column(
       children: [
         ..._horarios.asMap().entries.map((entry) {
           final i = entry.key;
           final horario = entry.value;
+          final inicio = horario['inicio'] ?? '';
+          final fim = horario['fim'] ?? '';
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -491,10 +566,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.access_time, color: colors.primary, size: 18),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: colors.success.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.access_time, color: colors.success, size: 16),
+                ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(horario, style: TextStyle(fontSize: 14, color: colors.textPrimary)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$inicio às $fim',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.textPrimary),
+                      ),
+                      Text(
+                        '${_horarios.length} período(s) configurado(s)',
+                        style: TextStyle(fontSize: 11, color: colors.textSecondary),
+                      ),
+                    ],
+                  ),
                 ),
                 IconButton(
                   icon: Icon(Icons.close, color: colors.danger, size: 18),
@@ -521,15 +615,70 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 Icon(Icons.add, color: colors.primary, size: 18),
                 const SizedBox(width: 6),
                 Text(
-                  'Adicionar Horário',
+                  'Adicionar Período',
                   style: TextStyle(color: colors.primary, fontWeight: FontWeight.w500, fontSize: 13),
                 ),
               ],
             ),
           ),
         ),
+        if (_horarios.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: colors.bgTertiary,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.preview, size: 14, color: colors.textSecondary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    _buildHorarioPreview(),
+                    style: TextStyle(fontSize: 11, color: colors.textSecondary, height: 1.4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
+  }
+
+  String _buildHorarioPreview() {
+    if (_horarios.isEmpty) return '';
+    final slots = <String>[];
+    for (final h in _horarios) {
+      final inicio = h['inicio'] ?? '';
+      final fim = h['fim'] ?? '';
+      if (inicio.isEmpty || fim.isEmpty) continue;
+
+      final startMinutes = _timeToMinutes(inicio);
+      final endMinutes = _timeToMinutes(fim);
+      var current = startMinutes;
+      while (current <= endMinutes) {
+        slots.add(_minutesToTime(current));
+        current += _intervalo;
+      }
+    }
+    if (slots.isEmpty) return 'Nenhum horário gerado';
+    final display = slots.length > 6 ? slots.sublist(0, 6) : slots;
+    final suffix = slots.length > 6 ? '... e mais ${slots.length - 6}' : '';
+    return 'Horários: ${display.join(", ")}$suffix';
+  }
+
+  int _timeToMinutes(String time) {
+    final parts = time.split(':');
+    return int.parse(parts[0]) * 60 + int.parse(parts[1]);
+  }
+
+  String _minutesToTime(int minutes) {
+    final h = (minutes ~/ 60).toString().padLeft(2, '0');
+    final m = (minutes % 60).toString().padLeft(2, '0');
+    return '$h:$m';
   }
 
   void _showAddHorarioDialog(AppColors colors) {
@@ -542,30 +691,44 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: colors.cardBg,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Adicionar Horário', style: TextStyle(color: colors.textPrimary)),
+          title: Text('Adicionar Período de Trabalho', style: TextStyle(color: colors.textPrimary, fontSize: 16)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Text(
+                'Define o início e o fim do período em que você atende.',
+                style: TextStyle(fontSize: 12, color: colors.textSecondary),
+              ),
+              const SizedBox(height: 16),
               ListTile(
-                leading: Icon(Icons.access_time, color: colors.primary),
+                leading: Icon(Icons.play_circle_outline, color: colors.success),
                 title: Text(
                   selectedStart != null
                       ? 'Início: ${selectedStart!.hour.toString().padLeft(2, '0')}:${selectedStart!.minute.toString().padLeft(2, '0')}'
                       : 'Horário de início',
                   style: TextStyle(color: colors.textPrimary),
                 ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: BorderSide(color: colors.borderColor),
+                ),
                 onTap: () async {
                   final time = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 8, minute: 0));
                   if (time != null) setDialogState(() => selectedStart = time);
                 },
               ),
+              const SizedBox(height: 8),
               ListTile(
-                leading: Icon(Icons.access_time_filled, color: colors.primary),
+                leading: Icon(Icons.stop_circle_outlined, color: colors.danger),
                 title: Text(
                   selectedEnd != null
                       ? 'Fim: ${selectedEnd!.hour.toString().padLeft(2, '0')}:${selectedEnd!.minute.toString().padLeft(2, '0')}'
                       : 'Horário de fim',
                   style: TextStyle(color: colors.textPrimary),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: BorderSide(color: colors.borderColor),
                 ),
                 onTap: () async {
                   final time = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 18, minute: 0));
@@ -582,13 +745,346 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             TextButton(
               onPressed: () {
                 if (selectedStart != null && selectedEnd != null) {
+                  final startMin = selectedStart!.hour * 60 + selectedStart!.minute;
+                  final endMin = selectedEnd!.hour * 60 + selectedEnd!.minute;
+                  if (startMin >= endMin) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('O horário de início deve ser anterior ao fim')),
+                    );
+                    return;
+                  }
                   final start = '${selectedStart!.hour.toString().padLeft(2, '0')}:${selectedStart!.minute.toString().padLeft(2, '0')}';
                   final end = '${selectedEnd!.hour.toString().padLeft(2, '0')}:${selectedEnd!.minute.toString().padLeft(2, '0')}';
-                  setState(() => _horarios.add('$start - $end'));
+                  setState(() => _horarios.add({'inicio': start, 'fim': end}));
                   Navigator.pop(context);
                 }
               },
               child: Text('Adicionar', style: TextStyle(color: colors.primary)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExcecoesInfo(AppColors colors) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: colors.primary, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Se algum dia da semana tem horários diferentes do padrão, você pode adicionar uma exceção aqui. '
+              'Dias sem exceção usam o horário padrão definido acima.',
+              style: TextStyle(fontSize: 12, color: colors.textSecondary, height: 1.4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExcecoes(AppColors colors) {
+    final allDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    final diasComExcecao = _horariosPorDia.keys.toList();
+
+    if (_diasTrabalho.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        alignment: Alignment.center,
+        child: Text(
+          'Selecione os dias de trabalho primeiro',
+          style: TextStyle(fontSize: 13, color: colors.textSecondary),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        ...diasComExcecao.map((dayKey) {
+          final dayIndex = int.tryParse(dayKey) ?? -1;
+          if (dayIndex < 0 || dayIndex > 6) return const SizedBox();
+          final periodos = _horariosPorDia[dayKey] ?? [];
+          final periodosText = periodos.map((p) => '${p['inicio']}-${p['fim']}').join(', ');
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: colors.cardBg,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: colors.warning.withValues(alpha: 0.4)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: colors.warning.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.edit_calendar, color: colors.warning, size: 16),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        allDays[dayIndex],
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.textPrimary),
+                      ),
+                      Text(
+                        periodosText,
+                        style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.close, color: colors.danger, size: 18),
+                  onPressed: () {
+                    setState(() => _horariosPorDia.remove(dayKey));
+                  },
+                ),
+              ],
+            ),
+          );
+        }),
+        GestureDetector(
+          onTap: () => _showAddExcecaoDialog(colors),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: colors.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add, color: colors.primary, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  'Adicionar Exceção',
+                  style: TextStyle(color: colors.primary, fontWeight: FontWeight.w500, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showAddExcecaoDialog(AppColors colors) {
+    final allDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    final diasDisponiveis = _diasTrabalho.where((d) => !_horariosPorDia.containsKey(d.toString())).toList();
+
+    if (diasDisponiveis.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Todos os dias de trabalho já têm exceção ou nenhum dia está selecionado')),
+      );
+      return;
+    }
+
+    int? selectedDay;
+    final periodos = <Map<String, dynamic>>[];
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: colors.cardBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('Nova Exceção', style: TextStyle(color: colors.textPrimary, fontSize: 16)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Escolha o dia e defina os horários específicos para ele.',
+                    style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Dia da semana', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.textPrimary)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: diasDisponiveis.map((d) {
+                      final isSelected = selectedDay == d;
+                      return GestureDetector(
+                        onTap: () => setDialogState(() => selectedDay = d),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected ? colors.primary : colors.cardBg,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected ? colors.primary : colors.borderColor,
+                            ),
+                          ),
+                          child: Text(
+                            allDays[d],
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: isSelected ? colors.textLight : colors.textPrimary,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  if (selectedDay != null) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Períodos', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.textPrimary)),
+                        GestureDetector(
+                          onTap: () async {
+                            TimeOfDay? start;
+                            TimeOfDay? end;
+                            await showDialog(
+                              context: context,
+                              builder: (ctx) => StatefulBuilder(
+                                builder: (ctx, setInner) => AlertDialog(
+                                  backgroundColor: colors.cardBg,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  title: Text('Novo período', style: TextStyle(color: colors.textPrimary, fontSize: 14)),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ListTile(
+                                        leading: Icon(Icons.play_circle_outline, color: colors.success),
+                                        title: Text(
+                                          start != null ? 'Início: ${start!.hour.toString().padLeft(2, '0')}:${start!.minute.toString().padLeft(2, '0')}' : 'Horário de início',
+                                          style: TextStyle(color: colors.textPrimary),
+                                        ),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: colors.borderColor)),
+                                        onTap: () async {
+                                          final t = await showTimePicker(context: ctx, initialTime: const TimeOfDay(hour: 8, minute: 0));
+                                          if (t != null) setInner(() => start = t);
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      ListTile(
+                                        leading: Icon(Icons.stop_circle_outlined, color: colors.danger),
+                                        title: Text(
+                                          end != null ? 'Fim: ${end!.hour.toString().padLeft(2, '0')}:${end!.minute.toString().padLeft(2, '0')}' : 'Horário de fim',
+                                          style: TextStyle(color: colors.textPrimary),
+                                        ),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: colors.borderColor)),
+                                        onTap: () async {
+                                          final t = await showTimePicker(context: ctx, initialTime: const TimeOfDay(hour: 18, minute: 0));
+                                          if (t != null) setInner(() => end = t);
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancelar', style: TextStyle(color: colors.textSecondary))),
+                                    TextButton(
+                                      onPressed: () {
+                                        if (start != null && end != null) {
+                                          final s = '${start!.hour.toString().padLeft(2, '0')}:${start!.minute.toString().padLeft(2, '0')}';
+                                          final e = '${end!.hour.toString().padLeft(2, '0')}:${end!.minute.toString().padLeft(2, '0')}';
+                                          setDialogState(() => periodos.add({'inicio': s, 'fim': e}));
+                                          Navigator.pop(ctx);
+                                        }
+                                      },
+                                      child: Text('Adicionar', style: TextStyle(color: colors.primary)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: colors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text('+ Período', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: colors.primary)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    if (periodos.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        alignment: Alignment.center,
+                        child: Text('Nenhum período adicionado', style: TextStyle(fontSize: 12, color: colors.textSecondary)),
+                      )
+                    else
+                      ...periodos.asMap().entries.map((entry) {
+                        final i = entry.key;
+                        final p = entry.value;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: colors.bgTertiary,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.access_time, size: 14, color: colors.primary),
+                              const SizedBox(width: 6),
+                              Expanded(child: Text('${p['inicio']} às ${p['fim']}', style: TextStyle(fontSize: 13, color: colors.textPrimary))),
+                              GestureDetector(
+                                onTap: () => setDialogState(() => periodos.removeAt(i)),
+                                child: Icon(Icons.close, size: 14, color: colors.danger),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancelar', style: TextStyle(color: colors.textSecondary)),
+            ),
+            TextButton(
+              onPressed: () {
+                if (selectedDay == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Selecione um dia da semana')),
+                  );
+                  return;
+                }
+                if (periodos.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Adicione pelo menos um período')),
+                  );
+                  return;
+                }
+                setState(() {
+                  _horariosPorDia[selectedDay.toString()] = List<Map<String, dynamic>>.from(periodos);
+                });
+                Navigator.pop(context);
+              },
+              child: Text('Salvar', style: TextStyle(color: colors.primary)),
             ),
           ],
         ),

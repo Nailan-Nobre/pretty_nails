@@ -350,7 +350,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildWorkDaysCard(BuildContext context, AppColors colors) {
     final diasTrabalho = _manicure?.diasTrabalho ?? [];
     final allDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    final weekDays = allDays.sublist(1);
 
     return Card(
       elevation: 4,
@@ -375,8 +374,8 @@ class _HomeScreenState extends State<HomeScreen> {
             Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: List.generate(weekDays.length, (index) {
-                final dayNum = index + 1;
+              children: List.generate(allDays.length, (index) {
+                final dayNum = index;
                 final isActive = diasTrabalho.contains(dayNum);
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -398,7 +397,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        weekDays[index],
+                        allDays[index],
                         style: TextStyle(
                           fontWeight: FontWeight.w500,
                           fontSize: 13,
@@ -418,6 +417,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildWorkHoursCard(BuildContext context, AppColors colors) {
     final horarios = _manicure?.horarios ?? [];
+    final intervalo = _manicure?.intervalo ?? 30;
 
     return Card(
       elevation: 4,
@@ -436,6 +436,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Horários',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary),
                 ),
+                if (intervalo > 0) ...[
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: colors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '$intervalo min',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: colors.primary),
+                    ),
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 12),
@@ -449,49 +463,36 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               )
             else
-              Container(
-                constraints: const BoxConstraints(maxHeight: 150),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: horarios.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 6),
-                  itemBuilder: (_, i) {
-                    return Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: colors.bgTertiary,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: colors.borderColor),
+              ...horarios.map((item) {
+                final inicio = item['inicio'] ?? '';
+                final fim = item['fim'] ?? '';
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: colors.bgTertiary,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: colors.borderColor),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: colors.success.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Icon(Icons.schedule, color: colors.success, size: 14),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Horário ${i + 1}',
-                            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: colors.textPrimary),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: colors.success.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              horarios[i],
-                              style: TextStyle(
-                                color: colors.success,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
+                      const SizedBox(width: 8),
+                      Text(
+                        '$inicio às $fim',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: colors.textPrimary),
                       ),
-                    );
-                  },
-                ),
-              ),
+                    ],
+                  ),
+                );
+              }).toList(),
           ],
         ),
       ),

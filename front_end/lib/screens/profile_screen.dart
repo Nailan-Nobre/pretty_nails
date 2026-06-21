@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../theme/theme_provider.dart';
 import '../models/manicure.dart';
 import '../services/auth_service.dart';
@@ -112,7 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: Icon(Icons.share_outlined, color: colors.primary, size: 20),
                     ),
-                    onPressed: () {},
+                    onPressed: () => _showShareDialog(colors),
                   ),
                   const SizedBox(width: 16),
                 ],
@@ -212,39 +214,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                 errorBuilder: (_, __, ___) => _buildDefaultAvatar(colors),
                                               )
                                             : _buildDefaultAvatar(colors),
-                                      ),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    right: 0,
-                                    bottom: 0,
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                                        ).then((_) => _loadProfile());
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: colors.cardBg,
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: colors.shadowSm,
-                                              blurRadius: 8,
-                                            ),
-                                          ],
-                                        ),
-                                        child: Container(
-                                          padding: const EdgeInsets.all(4),
-                                          decoration: BoxDecoration(
-                                            color: colors.primary,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(Icons.edit, color: colors.textLight, size: 14),
-                                        ),
                                       ),
                                     ),
                                   ),
@@ -398,7 +367,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildWorkDaysCard(AppColors colors) {
     final diasTrabalho = _manicure?.diasTrabalho ?? [];
     final allDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    final weekDays = allDays.sublist(1);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -434,8 +402,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: List.generate(weekDays.length, (index) {
-              final dayNum = index + 1;
+            children: List.generate(allDays.length, (index) {
+              final dayNum = index;
               final isActive = diasTrabalho.contains(dayNum);
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -459,7 +427,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      weekDays[index],
+                      allDays[index],
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 13,
@@ -478,6 +446,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildWorkHoursCard(AppColors colors) {
     final horarios = _manicure?.horarios ?? [];
+    final intervalo = _manicure?.intervalo ?? 30;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -509,6 +478,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
+          if (intervalo > 0) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'Intervalo: $intervalo min',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: colors.primary),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           if (horarios.isEmpty)
             Container(
@@ -521,6 +504,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             )
           else
             ...horarios.map((item) {
+              final inicio = item['inicio'] ?? '';
+              final fim = item['fim'] ?? '';
               return Container(
                 margin: const EdgeInsets.only(bottom: 6),
                 padding: const EdgeInsets.all(10),
@@ -530,26 +515,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   border: Border.all(color: colors.borderColor),
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Horário',
-                      style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: colors.textPrimary),
-                    ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+                      padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         color: colors.success.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                      child: Text(
-                        item,
-                        style: TextStyle(
-                          color: colors.success,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 12,
-                        ),
-                      ),
+                      child: Icon(Icons.schedule, color: colors.success, size: 14),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$inicio às $fim',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: colors.textPrimary),
                     ),
                   ],
                 ),
@@ -772,7 +750,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       isDestructive: true,
                       onTap: () {
                         Navigator.pop(context);
-                        _showLogoutDialog(context, colors);
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _showLogoutDialog(context, colors);
+                        });
                       },
                     ),
                     const SizedBox(height: 20),
@@ -870,6 +850,166 @@ class _ProfileScreenState extends State<ProfileScreen> {
               }
             },
             child: Text('Sair', style: TextStyle(color: colors.danger)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getProfileUrl() {
+    final slug = _manicure?.slug ?? '';
+    return 'https://pretty-nails-app.vercel.app/agendamento/$slug';
+  }
+
+  void _showShareDialog(AppColors colors) {
+    final url = _getProfileUrl();
+    final nome = _manicure?.nome ?? 'Manicure';
+    final texto = 'Confira o perfil de $nome e agende seu horário!';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: colors.cardBg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colors.borderColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Compartilhar Perfil',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colors.primary),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Escolha como compartilhar',
+              style: TextStyle(fontSize: 13, color: colors.textSecondary),
+            ),
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildSocialButton(
+                    icon: Icons.chat_bubble,
+                    label: 'WhatsApp',
+                    color: const Color(0xFF25D366),
+                    colors: colors,
+                    onTap: () async {
+                      final encoded = Uri.encodeComponent('$texto\n$url');
+                      final uri = Uri.parse('https://wa.me/?text=$encoded');
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                  ),
+                  _buildSocialButton(
+                    icon: Icons.language,
+                    label: 'Facebook',
+                    color: const Color(0xFF1877F2),
+                    colors: colors,
+                    onTap: () async {
+                      final encoded = Uri.encodeComponent(url);
+                      final uri = Uri.parse('https://www.facebook.com/sharer/sharer.php?u=$encoded');
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                  ),
+                  _buildSocialButton(
+                    icon: Icons.alternate_email,
+                    label: 'Twitter/X',
+                    color: const Color(0xFF000000),
+                    colors: colors,
+                    onTap: () async {
+                      final encoded = Uri.encodeComponent('$texto $url');
+                      final uri = Uri.parse('https://twitter.com/intent/tweet?text=$encoded');
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildSocialButton(
+                    icon: Icons.send,
+                    label: 'Telegram',
+                    color: const Color(0xFF0088CC),
+                    colors: colors,
+                    onTap: () async {
+                      final encoded = Uri.encodeComponent('$texto\n$url');
+                      final uri = Uri.parse('https://t.me/share/url?url=$encoded');
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                  ),
+                  _buildSocialButton(
+                    icon: Icons.link,
+                    label: 'Copiar Link',
+                    color: colors.primary,
+                    colors: colors,
+                    onTap: () async {
+                      await Clipboard.setData(ClipboardData(text: '$texto\n$url'));
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Link copiado!')),
+                        );
+                        Navigator.pop(context);
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 72),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required AppColors colors,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 26),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: TextStyle(fontSize: 11, color: colors.textSecondary),
           ),
         ],
       ),

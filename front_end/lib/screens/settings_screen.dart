@@ -226,7 +226,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onPressed: () {
                   _showLogoutDialog(context);
                 },
-                icon: const Icon(Icons.logout, size: 20),
+                icon: Icon(Icons.logout, size: 20, color: colors.danger),
                 label: Text(
                   'Sair',
                   style: TextStyle(
@@ -236,12 +236,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: colors.danger.withValues(alpha: 0.1),
+                  backgroundColor: colors.bgTertiary,
                   foregroundColor: colors.danger,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: colors.danger.withValues(alpha: 0.3)),
+                    side: BorderSide(color: colors.borderColor),
                   ),
                 ),
               ),

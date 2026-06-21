@@ -197,7 +197,7 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   InputDecoration _inputDecoration(String label, IconData icon, {Widget? suffixIcon}) {
-    final colors = ThemeProvider.of(context).colors;
+    final colors = AppColors.light;
     return InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon, color: colors.primary),
@@ -214,7 +214,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = ThemeProvider.of(context).colors;
+    final colors = AppColors.light;
 
     return Scaffold(
       backgroundColor: colors.bgPrimary,
