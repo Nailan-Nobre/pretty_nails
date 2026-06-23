@@ -11,6 +11,7 @@ import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
+import 'services/onesignal_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,8 +19,12 @@ void main() async {
   final isDark = prefs.getBool('dark_mode') ?? false;
   final isLoggedIn = await AuthService.isLoggedIn();
 
+  await OneSignalService.init();
+
   await NotificationService.init();
   if (isLoggedIn) {
+    await OneSignalService.requestPermission();
+    await OneSignalService.sendPlayerIdToServer();
     final granted = await NotificationService.requestPermission();
     if (granted) {
       await NotificationService.startPolling();

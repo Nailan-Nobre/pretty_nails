@@ -22,10 +22,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadFromCache();
+    _loadFromServer();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadFromCache() async {
     try {
       final manicure = await AuthService.getProfile();
       final feedbacks = await FeedbackService.listarPorManicure(manicure.id);
@@ -44,6 +45,22 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() => _loading = false);
       }
     }
+  }
+
+  Future<void> _loadFromServer() async {
+    try {
+      final manicure = await AuthService.getProfile(useCache: false);
+      final feedbacks = await FeedbackService.listarPorManicure(manicure.id, useCache: false);
+      final estatisticas = await AgendamentoService.obterEstatisticas(useCache: false);
+
+      if (mounted) {
+        setState(() {
+          _manicure = manicure;
+          _feedbacks = feedbacks;
+          _estatisticas = estatisticas;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -74,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: _loading
           ? Center(child: CircularProgressIndicator(color: colors.primary))
           : RefreshIndicator(
-              onRefresh: _loadData,
+              onRefresh: _loadFromServer,
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(

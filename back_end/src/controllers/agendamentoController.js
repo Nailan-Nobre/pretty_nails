@@ -1,5 +1,6 @@
 const supabase = require('../config/db');
 const nodemailer = require('nodemailer');
+const { sendPushToManicure } = require('../services/onesignalService');
 require('dotenv').config();
 
 // Configuração do serviço de e-mail
@@ -240,6 +241,13 @@ exports.criarAgendamento = async (req, res) => {
             emailsToSend.push(sendEmail(manicure.email, emailManicureSubject, emailManicureHtml));
         }
         await Promise.allSettled(emailsToSend);
+
+        sendPushToManicure(
+            manicure.id,
+            'Novo agendamento',
+            `${clienteNome} agendou ${servico} para ${formatarDataAgendamento(dataAgendamento)}`,
+            { type: 'novo_agendamento', agendamento_id: novoAgendamento[0].id }
+        ).catch(() => {});
 
         res.status(201).json({
             success: true,
@@ -724,6 +732,19 @@ exports.atualizarStatusAgendamento = async (req, res) => {
                 statusSubjectMap[status] || 'Atualização de agendamento - Pretty Nails',
                 emailStatusHtml
             );
+
+            const statusLabelMap = {
+                confirmado: 'confirmado',
+                cancelado: 'cancelado',
+                concluido: 'concluído',
+                recusado: 'recusado',
+            };
+            sendPushToManicure(
+                manicureId,
+                `Agendamento ${statusLabelMap[status]}`,
+                `Agendamento com ${agendamento.cliente_nome} foi ${statusLabelMap[status]}`,
+                { type: 'status_agendamento', agendamento_id: id, status }
+            ).catch(() => {});
         }
 
         res.json({

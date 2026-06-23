@@ -402,6 +402,32 @@ exports.refreshToken = async (req, res) => {
   }
 }
 
+// Salvar OneSignal player ID
+exports.savePlayerId = async (req, res) => {
+  const { player_id } = req.body
+
+  try {
+    if (!player_id) {
+      return res.status(400).json({ success: false, error: 'Player ID não fornecido' })
+    }
+
+    const { error } = await supabase
+      .from('manicures')
+      .update({ onesignal_player_id: player_id })
+      .eq('id', req.user.id)
+
+    if (error) throw error
+
+    res.json({ success: true, message: 'Player ID salvo com sucesso' })
+  } catch (error) {
+    console.error('Erro ao salvar player ID:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao salvar player ID'
+    })
+  }
+}
+
 function slugify(text) {
   return text
     .toLowerCase()

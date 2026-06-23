@@ -25,7 +25,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadAppointments();
+    _loadFromCache();
+    _loadFromServer();
     _autoRefreshTimer = Timer.periodic(const Duration(minutes: 1), (_) => _checkAutoComplete());
   }
 
@@ -36,7 +37,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     super.dispose();
   }
 
-  Future<void> _loadAppointments() async {
+  Future<void> _loadFromCache() async {
     try {
       final pendentes = await AgendamentoService.listarPendentes();
       final confirmados = await AgendamentoService.listarConfirmados();
@@ -57,6 +58,22 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     }
   }
 
+  Future<void> _loadFromServer() async {
+    try {
+      final pendentes = await AgendamentoService.listarPendentes(useCache: false);
+      final confirmados = await AgendamentoService.listarConfirmados(useCache: false);
+      final historico = await AgendamentoService.listarHistorico(useCache: false);
+
+      if (mounted) {
+        setState(() {
+          _pendentes = pendentes;
+          _confirmados = confirmados;
+          _historico = historico;
+        });
+      }
+    } catch (_) {}
+  }
+
   Future<void> _checkAutoComplete() async {
     final now = DateTime.now();
     for (final a in _confirmados) {
@@ -67,7 +84,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
       }
     }
     if (_confirmados.any((a) => a.dataHora.isBefore(now))) {
-      await _loadAppointments();
+      await _loadFromServer();
     }
   }
 
@@ -201,7 +218,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     }
 
     return RefreshIndicator(
-      onRefresh: _loadAppointments,
+      onRefresh: _loadFromServer,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView.separated(
@@ -405,7 +422,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
   Future<void> _updateStatus(Agendamento appointment, AgendamentoStatus newStatus) async {
     try {
       await AgendamentoService.atualizarStatus(appointment.id, newStatus);
-      await _loadAppointments();
+      await _loadFromServer();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

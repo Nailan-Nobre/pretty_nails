@@ -22,10 +22,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
-    _loadAppointments();
+    _loadFromCache();
+    _loadFromServer();
   }
 
-  Future<void> _loadAppointments() async {
+  Future<void> _loadFromCache() async {
     try {
       final agendamentos = await AgendamentoService.listarMeusAgendamentos();
       if (mounted) {
@@ -46,6 +47,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
         setState(() => _loading = false);
       }
     }
+  }
+
+  Future<void> _loadFromServer() async {
+    try {
+      final agendamentos = await AgendamentoService.listarMeusAgendamentos(useCache: false);
+      if (mounted) {
+        setState(() {
+          _appointments.clear();
+          for (final a in agendamentos) {
+            final key = DateTime(a.dataHora.year, a.dataHora.month, a.dataHora.day);
+            if (!_appointments.containsKey(key)) {
+              _appointments[key] = [];
+            }
+            _appointments[key]!.add(a);
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   Color _getStatusColor(AgendamentoStatus status, AppColors colors) {

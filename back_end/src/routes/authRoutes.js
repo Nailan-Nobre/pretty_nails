@@ -9,7 +9,8 @@ const {
   getUserById,
   getManicureBySlug,
   updateProfile,
-  refreshToken
+  refreshToken,
+  savePlayerId
 } = require('../controllers/authController');
 const uploadController = require('../controllers/uploadController');
 const { authenticate } = require('../middlewares/authMiddleware');
@@ -27,5 +28,6 @@ router.get('/manicure/:slug', getManicureBySlug);
 router.put('/profile', authenticate, updateProfile);
 router.post('/upload', authenticate, uploadController.uploadImagem);
 router.get('/profile', authenticate, getUserProfile);
+router.post('/player-id', authenticate, savePlayerId);
 
 module.exports = router;

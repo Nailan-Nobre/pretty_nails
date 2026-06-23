@@ -17,6 +17,7 @@ dependencies:
   image_picker: ^1.1.2
   url_launcher: ^6.3.1
   flutter_local_notifications: ^18.0.1
+  onesignal_flutter: ^5.2.0
 
 dev_dependencies:
   flutter_test:
@@ -33,6 +34,5 @@ flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
   image_path: "assets/icon/icon.png"
-  # web:
-  #   generate: true
-  #   image_path: "path/to/image.png"
+  adaptive_icon_foreground: "assets/icon/icon.png"
+  adaptive_icon_background: "#FFFFFF"

@@ -22,10 +22,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    _loadFromCache();
+    _loadFromServer();
   }
 
-  Future<void> _loadProfile() async {
+  Future<void> _loadFromCache() async {
     try {
       final manicure = await AuthService.getProfile();
       if (mounted) {
@@ -39,6 +40,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() => _loading = false);
       }
     }
+  }
+
+  Future<void> _loadFromServer() async {
+    try {
+      final manicure = await AuthService.getProfile(useCache: false);
+      if (mounted) {
+        setState(() {
+          _manicure = manicure;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -120,21 +132,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
                 flexibleSpace: FlexibleSpaceBar(
                   titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
-                  title: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: colors.cardBg.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      manicure?.nome ?? '',
-                      style: TextStyle(
-                        color: colors.primary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
                   background: Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -697,7 +694,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                        ).then((_) => _loadProfile());
+                        ).then((_) {
+                          _loadFromCache();
+                          _loadFromServer();
+                        });
                       },
                     ),
                     _buildMenuItem(

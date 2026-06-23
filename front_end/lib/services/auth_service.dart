@@ -1,6 +1,8 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/manicure.dart';
 import 'api_service.dart';
+import 'cache_service.dart';
+import 'onesignal_service.dart';
 
 class AuthService {
   static Future<Map<String, dynamic>> login(String email, String password) async {
@@ -15,6 +17,9 @@ class AuthService {
     if (response['refresh_token'] != null) {
       await ApiService.setRefreshToken(response['refresh_token']);
     }
+
+    await OneSignalService.requestPermission();
+    await OneSignalService.sendPlayerIdToServer();
 
     return response;
   }
@@ -38,8 +43,13 @@ class AuthService {
     });
   }
 
-  static Future<Manicure> getProfile() async {
+  static Future<Manicure> getProfile({bool useCache = true}) async {
+    if (useCache) {
+      final cached = await CacheService.loadProfile();
+      if (cached != null) return Manicure.fromJson(cached);
+    }
     final response = await ApiService.get('/auth/profile');
+    await CacheService.saveProfile(response['user']);
     return Manicure.fromJson(response['user']);
   }
 
@@ -68,6 +78,8 @@ class AuthService {
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
+    await CacheService.clearAll();
+    await OneSignalService.removeExternalUserId();
   }
 
   static Future<bool> isLoggedIn() async {
