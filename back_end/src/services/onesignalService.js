@@ -27,8 +27,10 @@ async function sendPushNotification(playerIds, title, body, data = {}) {
     contents: { en: body },
     data: data,
     android_accent_color: 'FF6B6B',
-    small_icon: 'launcher_icon',
-    large_icon: 'launcher_icon',
+    small_icon: 'ic_launcher_foreground',
+    large_icon: 'ic_launcher_foreground',
+    ios_badgeType: 'Increase',
+    ios_badgeCount: 1,
   });
 
   return new Promise((resolve, reject) => {

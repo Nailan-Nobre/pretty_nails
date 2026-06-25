@@ -5,11 +5,13 @@ import '../theme/theme_provider.dart';
 class CustomNavBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTabSelected;
+  final List<bool> badges;
 
   const CustomNavBar({
     Key? key,
     required this.currentIndex,
     required this.onTabSelected,
+    this.badges = const [false, false, false, false],
   }) : super(key: key);
 
   @override
@@ -24,23 +26,46 @@ class CustomNavBar extends StatelessWidget {
       selectedItemColor: colors.primary,
       unselectedItemColor: colors.textSecondary,
       showUnselectedLabels: true,
-      items: const [
+      items: [
         BottomNavigationBarItem(
-          icon: Icon(Icons.home),
+          icon: _buildBadgeIcon(Icons.home, 0),
           label: 'Início',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_month),
+          icon: _buildBadgeIcon(Icons.calendar_month, 1),
           label: 'Calendário',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.event),
+          icon: _buildBadgeIcon(Icons.event, 2),
           label: 'Agendamentos',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.person),
+          icon: _buildBadgeIcon(Icons.person, 3),
           label: 'Perfil',
         ),
+      ],
+    );
+  }
+
+  Widget _buildBadgeIcon(IconData icon, int index) {
+    final showBadge = index < badges.length && badges[index];
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(icon),
+        if (showBadge)
+          Positioned(
+            right: -2,
+            top: -2,
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
       ],
     );
   }

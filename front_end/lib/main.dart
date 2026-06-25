@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/theme_provider.dart';
@@ -12,6 +13,7 @@ import 'screens/settings_screen.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
 import 'services/onesignal_service.dart';
+import 'services/api_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -76,9 +78,39 @@ class _MainScreenState extends State<MainScreen> {
     SettingsScreen(),
   ];
 
+  Timer? _badgeTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startBadgePolling();
+  }
+
+  @override
+  void dispose() {
+    _badgeTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startBadgePolling() {
+    _checkBadges();
+    _badgeTimer = Timer.periodic(const Duration(seconds: 30), (_) => _checkBadges());
+  }
+
+  Future<void> _checkBadges() async {
+    try {
+      await ApiService.get('/api/agendamentos/pendentes');
+
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = ThemeProvider.of(context).colors;
+    final hasPending = NotificationService.pendingCount > 0;
 
     return Scaffold(
       backgroundColor: colors.bgPrimary,
@@ -90,6 +122,7 @@ class _MainScreenState extends State<MainScreen> {
             _selectedIndex = index;
           });
         },
+        badges: [false, false, hasPending, false],
       ),
     );
   }

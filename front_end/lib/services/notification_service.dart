@@ -7,6 +7,9 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   static Timer? _pollTimer;
   static int _notificationId = 0;
+  static int _pendingCount = 0;
+
+  static int get pendingCount => _pendingCount;
 
   static Future<void> init() async {
     const androidSettings = AndroidInitializationSettings('@mipmap/launcher_icon');
@@ -66,8 +69,14 @@ class NotificationService {
     try {
       final response = await ApiService.get('/api/agendamentos/pendentes');
       final list = response['agendamentos'] ?? [];
+      final count = list.length;
 
-      for (final item in (list as List)) {
+      if (count != _pendingCount) {
+        _pendingCount = count;
+        _updateBadge(count);
+      }
+
+      for (final item in list) {
         final createdAt = item['created_at'];
         if (createdAt == null) continue;
         final created = DateTime.parse(createdAt);
@@ -81,6 +90,24 @@ class NotificationService {
 
       _lastCheck = DateTime.now();
     } catch (_) {}
+  }
+
+  static Future<void> _updateBadge(int count) async {
+    await _plugin.show(
+      0,
+      '',
+      '',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'agendamentos',
+          'Agendamentos',
+          channelDescription: 'Notificações de novos agendamentos',
+          importance: Importance.low,
+          priority: Priority.low,
+        ),
+      ),
+    );
+    await _plugin.cancel(0);
   }
 
   static Future<void> _showNotification(String title, String body) async {
