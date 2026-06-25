@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/theme_provider.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
+import '../services/onesignal_service.dart';
 import '../services/api_service.dart';
 import 'login_screen.dart';
 
@@ -38,6 +39,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setBool('notif_enabled', enabled);
     await prefs.setBool('notif_app', enabled && _notifType == 'app');
     setState(() => _notifEnabled = enabled);
+
+    if (enabled && _notifType == 'app') {
+      final granted = await OneSignalService.requestPermission();
+      if (granted) {
+        await OneSignalService.optIn();
+        await NotificationService.startPolling();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permissão de notificações negada. Ative nas configurações do celular.')),
+        );
+      }
+    } else {
+      await OneSignalService.optOut();
+      NotificationService.stopPolling();
+    }
+
+    try {
+      await ApiService.put('/auth/profile', body: {
+        'notificacoes_email': enabled && _notifType == 'email',
+      });
+    } catch (_) {}
   }
 
   Future<void> _saveNotifType(String type) async {
@@ -46,20 +68,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setBool('notif_app', _notifEnabled && type == 'app');
     setState(() => _notifType = type);
 
+    if (type == 'app' && _notifEnabled) {
+      final granted = await OneSignalService.requestPermission();
+      if (granted) {
+        await OneSignalService.optIn();
+        await NotificationService.startPolling();
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permissão de notificações negada.')),
+        );
+      }
+    } else {
+      await OneSignalService.optOut();
+      NotificationService.stopPolling();
+    }
+
     try {
       await ApiService.put('/auth/profile', body: {
         'notificacoes_email': _notifEnabled && type == 'email',
       });
     } catch (_) {}
-
-    if (type == 'app' && _notifEnabled) {
-      final granted = await NotificationService.requestPermission();
-      if (!granted && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permissão de notificações negada. Ative nas configurações do celular.')),
-        );
-      }
-    }
   }
 
   @override
@@ -264,7 +292,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   _buildNotifTypeTile('app', 'Notificações no App', 'Receber notificações push no aplicativo', Icons.phone_android, colors),
                   _buildNotifTypeTile('email', 'Notificações por E-mail', 'Receber e-mail sobre agendamentos', Icons.email_outlined, colors),
-                  _buildNotifTypeTile('none', 'Não receber', 'Desativar todas as notificações', Icons.notifications_off_outlined, colors),
                 ],
               ),
             ),

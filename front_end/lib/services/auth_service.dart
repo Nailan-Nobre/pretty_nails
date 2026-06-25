@@ -18,9 +18,6 @@ class AuthService {
       await ApiService.setRefreshToken(response['refresh_token']);
     }
 
-    await OneSignalService.requestPermission();
-    await OneSignalService.sendPlayerIdToServer();
-
     return response;
   }
 

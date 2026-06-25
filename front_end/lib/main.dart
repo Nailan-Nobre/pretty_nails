@@ -23,11 +23,14 @@ void main() async {
 
   await NotificationService.init();
   if (isLoggedIn) {
-    await OneSignalService.requestPermission();
     await OneSignalService.sendPlayerIdToServer();
-    final granted = await NotificationService.requestPermission();
-    if (granted) {
-      await NotificationService.startPolling();
+
+    final notifEnabled = prefs.getBool('notif_enabled') ?? true;
+    if (notifEnabled) {
+      final granted = await NotificationService.requestPermission();
+      if (granted) {
+        await NotificationService.startPolling();
+      }
     }
   }
 

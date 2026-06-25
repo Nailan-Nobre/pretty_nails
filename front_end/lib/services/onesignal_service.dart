@@ -5,14 +5,13 @@ import 'api_service.dart';
 class OneSignalService {
   static const String _appId = String.fromEnvironment(
     'ONESIGNAL_APP_ID',
-    defaultValue: '',
+    defaultValue: 'c165041f-74ec-4790-b66e-aaaa78601453',
   );
 
   static Future<void> init() async {
     if (_appId.isEmpty) return;
 
     OneSignal.initialize(_appId);
-    OneSignal.User.pushSubscription.optIn();
 
     OneSignal.Notifications.addForegroundWillDisplayListener((event) {
       event.preventDefault();
@@ -42,10 +41,26 @@ class OneSignalService {
     } catch (_) {}
   }
 
-  static Future<void> requestPermission() async {
-    if (_appId.isEmpty) return;
-    final result = await OneSignal.Notifications.requestPermission(true);
+  static Future<bool> requestPermission() async {
+    if (_appId.isEmpty) return false;
+    final result = await OneSignal.Notifications.requestPermission();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onesignal_permission', result);
+    return result;
+  }
+
+  static bool isPermissionGranted() {
+    if (_appId.isEmpty) return false;
+    return OneSignal.User.pushSubscription.id != null;
+  }
+
+  static Future<void> optIn() async {
+    if (_appId.isEmpty) return;
+    OneSignal.User.pushSubscription.optIn();
+  }
+
+  static Future<void> optOut() async {
+    if (_appId.isEmpty) return;
+    OneSignal.User.pushSubscription.optOut();
   }
 }

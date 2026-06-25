@@ -78,28 +78,32 @@ async function sendPushNotification(playerIds, title, body, data = {}) {
 async function sendPushToManicure(manicureId, title, body, data = {}) {
   const supabase = require('../config/db');
 
+  console.log(`[OneSignal] Tentando enviar push para manicure ${manicureId}`);
+
   const { data: manicure, error } = await supabase
     .from('manicures')
-    .select('onesignal_player_id')
+    .select('onesignal_player_id, nome, notificacoes_email')
     .eq('id', manicureId)
     .single();
 
   if (error || !manicure) {
-    console.error('Erro ao buscar manicure para push:', error);
+    console.error(`[OneSignal] Erro ao buscar manicure ${manicureId}:`, error);
     return;
   }
 
+  console.log(`[OneSignal] Manicure: ${manicure.nome}, player_id: ${manicure.onesignal_player_id || 'NENHUM'}, email_pref: ${manicure.notificacoes_email}`);
+
   const playerId = manicure.onesignal_player_id;
   if (!playerId) {
-    console.log(`Manicure ${manicureId} sem player ID registrado`);
+    console.log(`[OneSignal] Manicure ${manicure.nome} (${manicureId}) sem player ID - push não enviada`);
     return;
   }
 
   try {
-    await sendPushNotification([playerId], title, body, data);
-    console.log(`Push enviado para manicure ${manicureId}`);
+    const result = await sendPushNotification([playerId], title, body, data);
+    console.log(`[OneSignal] Push enviada para ${manicure.nome}. Resultado:`, JSON.stringify(result).substring(0, 200));
   } catch (err) {
-    console.error(`Falha ao enviar push para manicure ${manicureId}:`, err.message || err);
+    console.error(`[OneSignal] Falha ao enviar push para ${manicure.nome}:`, err.message || err);
   }
 }
 
