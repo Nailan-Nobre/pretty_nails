@@ -9,4 +9,4 @@ export PATH="$HOME/flutter/bin:$PATH"
 
 flutter pub get
 
-flutter build web --dart-define=BACKEND_URL=$BACKEND_URL
+flutter build web --dart-define=BACKEND_URL=$BACKEND_URL --dart-define=ONESIGNAL_APP_ID=$ONESIGNAL_APP_ID

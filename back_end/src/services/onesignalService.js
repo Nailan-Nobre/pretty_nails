@@ -5,17 +5,20 @@ const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 
 async function sendPushNotification(playerIds, title, body, data = {}) {
   if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
-    console.log('OneSignal não configurado, pulando push notification');
+    console.log('[OneSignal] App ID ou REST API Key não configurados, pulando push');
     return;
   }
 
   if (!playerIds || playerIds.length === 0) {
-    console.log('Nenhum player ID para enviar notificação');
+    console.log('[OneSignal] Nenhum player ID fornecido');
     return;
   }
 
   const validIds = playerIds.filter(id => id && id.trim().length > 0);
-  if (validIds.length === 0) return;
+  if (validIds.length === 0) {
+    console.log('[OneSignal] Nenhum player ID válido após filtro');
+    return;
+  }
 
   const payload = JSON.stringify({
     app_id: ONESIGNAL_APP_ID,
@@ -48,19 +51,22 @@ async function sendPushNotification(playerIds, title, body, data = {}) {
         try {
           const result = JSON.parse(body);
           if (result.errors) {
-            console.error('OneSignal errors:', result.errors);
+            console.error('[OneSignal] Erros na resposta:', result.errors);
+          } else if (result.id) {
+            console.log(`[OneSignal] Push enviada com sucesso. ID: ${result.id}, recipients: ${result.recipients || 'N/A'}`);
           } else {
-            console.log('Push notification enviada:', result.id);
+            console.log('[OneSignal] Resposta:', body);
           }
           resolve(result);
         } catch (e) {
+          console.log('[OneSignal] Resposta não-JSON:', body);
           resolve(body);
         }
       });
     });
 
     req.on('error', (error) => {
-      console.error('Erro ao enviar push notification:', error);
+      console.error('[OneSignal] Erro de conexão:', error.message);
       reject(error);
     });
 
@@ -74,7 +80,7 @@ async function sendPushToManicure(manicureId, title, body, data = {}) {
 
   const { data: manicure, error } = await supabase
     .from('manicures')
-    .select('onesignal_player_id, notificacoes_email')
+    .select('onesignal_player_id')
     .eq('id', manicureId)
     .single();
 
@@ -83,18 +89,18 @@ async function sendPushToManicure(manicureId, title, body, data = {}) {
     return;
   }
 
-  if (manicure.notificacoes_email === false) {
-    console.log('Manicure desativou notificações');
-    return;
-  }
-
   const playerId = manicure.onesignal_player_id;
   if (!playerId) {
-    console.log('Manicure sem player ID registrado');
+    console.log(`Manicure ${manicureId} sem player ID registrado`);
     return;
   }
 
-  await sendPushNotification([playerId], title, body, data);
+  try {
+    await sendPushNotification([playerId], title, body, data);
+    console.log(`Push enviado para manicure ${manicureId}`);
+  } catch (err) {
+    console.error(`Falha ao enviar push para manicure ${manicureId}:`, err.message || err);
+  }
 }
 
 module.exports = {
