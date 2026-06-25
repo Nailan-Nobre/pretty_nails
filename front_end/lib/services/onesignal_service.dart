@@ -43,7 +43,7 @@ class OneSignalService {
 
   static Future<bool> requestPermission() async {
     if (_appId.isEmpty) return false;
-    final result = await OneSignal.Notifications.requestPermission();
+    final result = await OneSignal.Notifications.requestPermission(false);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onesignal_permission', result);
     return result;
