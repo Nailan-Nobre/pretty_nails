@@ -10,6 +10,10 @@ class NotificationService {
 
   static int get pendingCount => _pendingCount;
 
+  static const String channelId = 'agendamentos';
+  static const String channelName = 'Agendamentos';
+  static const String channelDesc = 'Notificações de novos agendamentos';
+
   static Future<void> init() async {
     const androidSettings = AndroidInitializationSettings('@mipmap/launcher_icon');
     const iosSettings = DarwinInitializationSettings(
@@ -19,6 +23,20 @@ class NotificationService {
     );
     const settings = InitializationSettings(android: androidSettings, iOS: iosSettings);
     await _plugin.initialize(settings, onDidReceiveNotificationResponse: (details) {});
+
+    final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    if (android != null) {
+      await android.createNotificationChannel(
+        const AndroidNotificationChannel(
+          channelId,
+          channelName,
+          description: channelDesc,
+          importance: Importance.high,
+          enableVibration: true,
+          playSound: true,
+        ),
+      );
+    }
   }
 
   static Future<bool> _isAppNotificationEnabled() async {

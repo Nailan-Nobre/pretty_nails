@@ -31,6 +31,7 @@ async function sendPushNotification(playerIds, title, body, data = {}) {
     large_icon: 'ic_launcher_foreground',
     ios_badgeType: 'Increase',
     ios_badgeCount: 1,
+    priority: 10,
   });
 
   return new Promise((resolve, reject) => {
