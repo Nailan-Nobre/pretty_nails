@@ -44,20 +44,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final granted = await OneSignalService.requestPermission();
       if (granted) {
         await OneSignalService.optIn();
-        await NotificationService.startPolling();
+        await NotificationService.startBadgePolling();
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Permissão de notificações negada. Ative nas configurações do celular.')),
         );
       }
     } else {
-      await OneSignalService.optOut();
-      NotificationService.stopPolling();
+      await OneSignalService.revokePermission();
+      NotificationService.stopBadgePolling();
     }
 
     try {
       await ApiService.put('/auth/profile', body: {
         'notificacoes_email': enabled && _notifType == 'email',
+        'notificacoes_push': enabled && _notifType == 'app',
       });
     } catch (_) {}
   }
@@ -72,20 +73,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final granted = await OneSignalService.requestPermission();
       if (granted) {
         await OneSignalService.optIn();
-        await NotificationService.startPolling();
+        await NotificationService.startBadgePolling();
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Permissão de notificações negada.')),
         );
       }
     } else {
-      await OneSignalService.optOut();
-      NotificationService.stopPolling();
+      await OneSignalService.revokePermission();
+      NotificationService.stopBadgePolling();
     }
 
     try {
       await ApiService.put('/auth/profile', body: {
         'notificacoes_email': _notifEnabled && type == 'email',
+        'notificacoes_push': _notifEnabled && type == 'app',
       });
     } catch (_) {}
   }

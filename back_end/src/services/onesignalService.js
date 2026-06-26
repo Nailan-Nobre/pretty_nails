@@ -84,7 +84,7 @@ async function sendPushToManicure(manicureId, title, body, data = {}) {
 
   const { data: manicure, error } = await supabase
     .from('manicures')
-    .select('onesignal_player_id, nome, notificacoes_email')
+    .select('onesignal_player_id, nome, notificacoes_email, notificacoes_push')
     .eq('id', manicureId)
     .single();
 
@@ -93,7 +93,12 @@ async function sendPushToManicure(manicureId, title, body, data = {}) {
     return;
   }
 
-  console.log(`[OneSignal] Manicure: ${manicure.nome}, player_id: ${manicure.onesignal_player_id || 'NENHUM'}, email_pref: ${manicure.notificacoes_email}`);
+  console.log(`[OneSignal] Manicure: ${manicure.nome}, player_id: ${manicure.onesignal_player_id || 'NENHUM'}, push_pref: ${manicure.notificacoes_push}, email_pref: ${manicure.notificacoes_email}`);
+
+  if (manicure.notificacoes_push === false) {
+    console.log(`[OneSignal] Manicure ${manicure.nome} desativou notificações push`);
+    return;
+  }
 
   const playerId = manicure.onesignal_player_id;
   if (!playerId) {

@@ -13,7 +13,6 @@ import 'screens/settings_screen.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
 import 'services/onesignal_service.dart';
-import 'services/api_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,17 +21,19 @@ void main() async {
   final isLoggedIn = await AuthService.isLoggedIn();
 
   await OneSignalService.init();
-
   await NotificationService.init();
+
+  final notifEnabled = prefs.getBool('notif_enabled') ?? true;
+  if (notifEnabled) {
+    await OneSignalService.requestPermission();
+  }
+
   if (isLoggedIn) {
     await OneSignalService.sendPlayerIdToServer();
 
-    final notifEnabled = prefs.getBool('notif_enabled') ?? true;
-    if (notifEnabled) {
-      final granted = await NotificationService.requestPermission();
-      if (granted) {
-        await NotificationService.startPolling();
-      }
+    final notifApp = prefs.getBool('notif_app') ?? true;
+    if (notifEnabled && notifApp) {
+      await NotificationService.startBadgePolling();
     }
   }
 
@@ -84,6 +85,11 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _startBadgePolling();
+    OneSignalService.setNotificationOpenedCallback(() {
+      if (mounted) {
+        setState(() => _selectedIndex = 2);
+      }
+    });
   }
 
   @override
@@ -99,11 +105,9 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _checkBadges() async {
     try {
-      await ApiService.get('/api/agendamentos/pendentes');
-
-      if (mounted) {
-        setState(() {});
-      }
+      await NotificationService.refreshPendingCount();
+      await OneSignalService.updateBadgeCount(NotificationService.pendingCount);
+      if (mounted) setState(() {});
     } catch (_) {}
   }
 
@@ -121,8 +125,11 @@ class _MainScreenState extends State<MainScreen> {
           setState(() {
             _selectedIndex = index;
           });
+          if (index == 2) {
+            OneSignalService.clearBadge();
+          }
         },
-        badges: [false, false, hasPending, false],
+        badges: [0, 0, hasPending ? NotificationService.pendingCount : 0, 0],
       ),
     );
   }

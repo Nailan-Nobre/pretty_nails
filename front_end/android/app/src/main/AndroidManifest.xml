@@ -35,14 +35,6 @@
         <meta-data
             android:name="com.onesignal.APP_ID"
             android:value="c165041f-74ec-4790-b66e-aaaa78601453" />
-
-        <meta-data
-            android:name="com.onesignal.NotificationService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.onesignal.NotificationExtensionService" />
-            </intent-filter>
-        </meta-data>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

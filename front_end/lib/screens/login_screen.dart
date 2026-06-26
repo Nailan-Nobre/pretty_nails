@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/theme_provider.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
+import '../services/onesignal_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -38,6 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _emailController.text.trim(),
         _passwordController.text,
       );
+      await OneSignalService.sendPlayerIdToServer();
 
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/home');

@@ -5,13 +5,13 @@ import '../theme/theme_provider.dart';
 class CustomNavBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTabSelected;
-  final List<bool> badges;
+  final List<int> badges;
 
   const CustomNavBar({
     Key? key,
     required this.currentIndex,
     required this.onTabSelected,
-    this.badges = const [false, false, false, false],
+    this.badges = const [0, 0, 0, 0],
   }) : super(key: key);
 
   @override
@@ -48,21 +48,34 @@ class CustomNavBar extends StatelessWidget {
   }
 
   Widget _buildBadgeIcon(IconData icon, int index) {
-    final showBadge = index < badges.length && badges[index];
+    final count = index < badges.length ? badges[index] : 0;
     return Stack(
       clipBehavior: Clip.none,
       children: [
         Icon(icon),
-        if (showBadge)
+        if (count > 0)
           Positioned(
-            right: -2,
-            top: -2,
+            right: -6,
+            top: -4,
             child: Container(
-              width: 8,
-              height: 8,
+              padding: const EdgeInsets.all(2),
+              constraints: const BoxConstraints(
+                minWidth: 16,
+                minHeight: 16,
+              ),
               decoration: const BoxDecoration(
                 color: Colors.red,
                 shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  count > 99 ? '99+' : '$count',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
           ),
