@@ -1,5 +1,7 @@
 const supabase = require('../config/db');
 const nodemailer = require('nodemailer');
+const { v4: uuidv4 } = require('uuid');
+const { ensureReferenciaBucket, REFERENCIA_BUCKET } = require('../services/storageService');
 const { sendPushToManicure } = require('../services/onesignalService');
 require('dotenv').config();
 
@@ -183,6 +185,38 @@ exports.criarAgendamento = async (req, res) => {
             });
         }
 
+        // Upload da imagem de referência (se fornecida)
+        let imagemReferenciaUrl = null;
+        if (imagemReferencia) {
+            try {
+                const matches = imagemReferencia.match(/^data:(.*);base64,(.*)$/);
+                if (matches && matches.length === 3) {
+                    await ensureReferenciaBucket();
+                    const contentType = matches[1];
+                    const extension = contentType.split('/')[1];
+                    const buffer = Buffer.from(matches[2], 'base64');
+                    const fileName = `referencias/${uuidv4()}.${extension}`;
+
+                    const { error: uploadError } = await supabase.storage
+                        .from(REFERENCIA_BUCKET)
+                        .upload(fileName, buffer, {
+                            contentType,
+                            upsert: false,
+                            cacheControl: '3600'
+                        });
+
+                    if (!uploadError) {
+                        const { data: { publicUrl } } = supabase.storage
+                            .from(REFERENCIA_BUCKET)
+                            .getPublicUrl(fileName);
+                        imagemReferenciaUrl = publicUrl;
+                    }
+                }
+            } catch (imgErr) {
+                console.error('Erro ao fazer upload da imagem de referência:', imgErr);
+            }
+        }
+
         // Cria o agendamento
         const { data: novoAgendamento, error } = await supabase
             .from('agendamentos')
@@ -195,7 +229,7 @@ exports.criarAgendamento = async (req, res) => {
                 data_hora: dataAgendamento.toISOString(),
                 servico,
                 observacoes,
-                imagem_referencia: imagemReferencia || null,
+                imagem_referencia: imagemReferenciaUrl,
                 status: 'pendente'
             })
             .select(`

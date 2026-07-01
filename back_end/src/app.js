@@ -3,7 +3,6 @@ const cors = require('cors');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 const agendamentoController = require('./controllers/agendamentoController');
-const uploadController = require('./controllers/uploadController');
 const { authenticate } = require('./middlewares/authMiddleware');
 const agendamentoRoutes = require('./routes/agendamentoRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes'); // Nova rota de feedbacks
@@ -14,8 +13,8 @@ const app = express();
 
 // Middlewares
 app.use(cors());
-app.use(express.json({ limit: '20mb' }));
-app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Middleware de logging para debug
 app.use((req, res, next) => {
@@ -31,7 +30,6 @@ app.use('/auth', authRoutes);
 app.use('/feedback', feedbackRoutes); // Rota pública para visualizar feedbacks
 
 app.post('/api/agendamentos/public', agendamentoController.criarAgendamento);
-app.post('/api/upload/referencia', uploadController.uploadReferencia);
 
 // Rotas protegidas
 app.use('/api/users', authenticate, userRoutes);

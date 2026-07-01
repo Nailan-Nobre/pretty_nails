@@ -640,9 +640,6 @@
                     <i class="fa-solid fa-trash"></i> Remover imagem
                   </button>
                 </div>
-                <div id="uploadProgress" class="upload-progress" style="display:none;">
-                  <i class="fa-solid fa-spinner"></i> Enviando imagem...
-                </div>
               </div>
             </div>
             <button type="submit" class="submit-btn" id="submitBtn">
@@ -792,49 +789,16 @@
         return;
       }
 
-      // Mostrar preview
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        document.getElementById('imagePreview').src = e.target.result;
+      // Comprimir e armazenar em memória
+      compressImage(file).then(compressed => {
+        uploadedImageUrl = compressed; // armazena o base64 comprimido
+        document.getElementById('imagePreview').src = compressed;
         document.getElementById('uploadPlaceholder').style.display = 'none';
         document.getElementById('imagePreviewContainer').style.display = 'block';
         document.getElementById('imageUploadArea').classList.add('has-image');
-      };
-      reader.readAsDataURL(file);
-
-      // Upload da imagem
-      uploadImage(file);
-    }
-
-    async function uploadImage(file) {
-      const uploadProgress = document.getElementById('uploadProgress');
-      uploadProgress.style.display = 'flex';
-
-      try {
-        // Comprimir a imagem antes de enviar
-        const compressedBase64 = await compressImage(file);
-
-        // Enviar para o servidor
-        const response = await fetch(`${API_BASE}/api/upload/referencia`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: compressedBase64 })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Erro ao fazer upload');
-        }
-
-        uploadedImageUrl = data.url;
-        uploadProgress.style.display = 'none';
-
-      } catch (err) {
-        console.error('Erro no upload:', err);
-        showToast('Erro ao enviar imagem. Tente novamente.');
-        removeImage();
-      }
+      }).catch(() => {
+        showToast('Erro ao processar imagem.');
+      });
     }
 
     function compressImage(file) {
@@ -846,7 +810,6 @@
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
 
-            // Limitar dimensões máximas
             let { width, height } = img;
             const maxSize = 1200;
             if (width > maxSize || height > maxSize) {
@@ -863,7 +826,6 @@
             canvas.height = height;
             ctx.drawImage(img, 0, 0, width, height);
 
-            // Comprimir como JPEG com qualidade 0.7
             const compressed = canvas.toDataURL('image/jpeg', 0.7);
             resolve(compressed);
           };
@@ -879,6 +841,10 @@
       if (event) event.stopPropagation();
       uploadedImageUrl = null;
       document.getElementById('imageInput').value = '';
+      document.getElementById('uploadPlaceholder').style.display = 'block';
+      document.getElementById('imagePreviewContainer').style.display = 'none';
+      document.getElementById('imageUploadArea').classList.remove('has-image');
+    }
       document.getElementById('uploadPlaceholder').style.display = 'block';
       document.getElementById('imagePreviewContainer').style.display = 'none';
       document.getElementById('imageUploadArea').classList.remove('has-image');
