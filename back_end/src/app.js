@@ -3,6 +3,7 @@ const cors = require('cors');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 const agendamentoController = require('./controllers/agendamentoController');
+const uploadController = require('./controllers/uploadController');
 const { authenticate } = require('./middlewares/authMiddleware');
 const agendamentoRoutes = require('./routes/agendamentoRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes'); // Nova rota de feedbacks
@@ -30,6 +31,7 @@ app.use('/auth', authRoutes);
 app.use('/feedback', feedbackRoutes); // Rota pública para visualizar feedbacks
 
 app.post('/api/agendamentos/public', agendamentoController.criarAgendamento);
+app.post('/api/upload/referencia', uploadController.uploadReferencia);
 
 // Rotas protegidas
 app.use('/api/users', authenticate, userRoutes);
@@ -39,9 +41,9 @@ app.use('/api/analise', authenticate, analiseRoutes);
 
 // Rota protegida de exemplo
 app.get('/protegido', authenticate, (req, res) => {
-  res.json({ 
+  res.json({
     message: 'Rota protegida!',
-    user: req.user 
+    user: req.user
   });
 });
 

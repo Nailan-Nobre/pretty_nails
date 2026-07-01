@@ -1,23 +1,24 @@
 const supabase = require('../config/db')
 
 const AVATAR_BUCKET = 'avatars'
+const REFERENCIA_BUCKET = 'referencias'
 
-async function ensureAvatarBucket() {
+async function ensureBucket(bucketName, options = {}) {
   const { data, error } = await supabase.storage.listBuckets()
 
   if (error) {
     throw error
   }
 
-  const avatarBucket = Array.isArray(data)
-    ? data.find((bucket) => bucket.name === AVATAR_BUCKET)
+  const bucket = Array.isArray(data)
+    ? data.find((b) => b.name === bucketName)
     : null
 
-  if (avatarBucket) {
-    if (!avatarBucket.public) {
-      const { error: updateError } = await supabase.storage.updateBucket(AVATAR_BUCKET, {
+  if (bucket) {
+    if (!bucket.public) {
+      const { error: updateError } = await supabase.storage.updateBucket(bucketName, {
         public: true,
-        fileSizeLimit: 10 * 1024 * 1024
+        fileSizeLimit: options.fileSizeLimit || 10 * 1024 * 1024
       })
 
       if (updateError) {
@@ -25,22 +26,32 @@ async function ensureAvatarBucket() {
       }
     }
 
-    return { created: false, bucket: AVATAR_BUCKET }
+    return { created: false, bucket: bucketName }
   }
 
-  const { data: createdBucket, error: createError } = await supabase.storage.createBucket(AVATAR_BUCKET, {
+  const { data: createdBucket, error: createError } = await supabase.storage.createBucket(bucketName, {
     public: true,
-    fileSizeLimit: 10 * 1024 * 1024
+    fileSizeLimit: options.fileSizeLimit || 10 * 1024 * 1024
   })
 
   if (createError) {
     throw createError
   }
 
-  return { created: true, bucket: createdBucket?.name || AVATAR_BUCKET }
+  return { created: true, bucket: createdBucket?.name || bucketName }
+}
+
+async function ensureAvatarBucket() {
+  return ensureBucket(AVATAR_BUCKET)
+}
+
+async function ensureReferenciaBucket() {
+  return ensureBucket(REFERENCIA_BUCKET, { fileSizeLimit: 5 * 1024 * 1024 })
 }
 
 module.exports = {
   ensureAvatarBucket,
-  AVATAR_BUCKET
+  ensureReferenciaBucket,
+  AVATAR_BUCKET,
+  REFERENCIA_BUCKET
 }

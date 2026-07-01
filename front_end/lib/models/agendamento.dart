@@ -63,6 +63,7 @@ class Agendamento {
   final DateTime dataHora;
   final String servico;
   final String? observacoes;
+  final String? imagemReferencia;
   final double? valor;
   final AgendamentoStatus status;
   final bool? avaliado;
@@ -79,6 +80,7 @@ class Agendamento {
     required this.dataHora,
     required this.servico,
     this.observacoes,
+    this.imagemReferencia,
     this.valor,
     required this.status,
     this.avaliado,
@@ -97,6 +99,7 @@ class Agendamento {
       dataHora: DateTime.parse(json['data_hora']),
       servico: json['servico'] ?? '',
       observacoes: json['observacoes'],
+      imagemReferencia: json['imagem_referencia'],
       valor: json['valor'] != null ? (json['valor'] as num).toDouble() : null,
       status: agendamentoStatusFromString(json['status'] ?? 'pendente'),
       avaliado: json['avaliado'],
@@ -120,6 +123,7 @@ class Agendamento {
       'data_hora': dataHora.toIso8601String(),
       'servico': servico,
       'observacoes': observacoes,
+      'imagem_referencia': imagemReferencia,
       'valor': valor,
       'status': agendamentoStatusToString(status),
       'avaliado': avaliado,
@@ -136,6 +140,7 @@ class Agendamento {
     DateTime? dataHora,
     String? servico,
     String? observacoes,
+    String? imagemReferencia,
     double? valor,
     AgendamentoStatus? status,
     bool? avaliado,
@@ -150,6 +155,7 @@ class Agendamento {
       dataHora: dataHora ?? this.dataHora,
       servico: servico ?? this.servico,
       observacoes: observacoes ?? this.observacoes,
+      imagemReferencia: imagemReferencia ?? this.imagemReferencia,
       valor: valor ?? this.valor,
       status: status ?? this.status,
       avaliado: avaliado ?? this.avaliado,

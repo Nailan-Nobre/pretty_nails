@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const { createClient } = require('@supabase/supabase-js');
-const { ensureAvatarBucket, AVATAR_BUCKET } = require('../services/storageService');
+const { ensureAvatarBucket, ensureReferenciaBucket, AVATAR_BUCKET, REFERENCIA_BUCKET } = require('../services/storageService');
 require('dotenv').config();
 
 const supabase = createClient(
@@ -79,6 +79,48 @@ exports.uploadImagem = async (req, res) => {
 
   } catch (error) {
     console.error('Erro no uploadController:', error);
+    res.status(500).json({ error: 'Erro interno no servidor' });
+  }
+};
+
+// Upload de imagem de referência (público, sem autenticação)
+exports.uploadReferencia = async (req, res) => {
+  try {
+    const { image } = req.body;
+
+    if (!image) return res.status(400).json({ error: 'Imagem não fornecida.' });
+
+    const parsed = parseBase64Image(image);
+    if (!parsed) return res.status(400).json({ error: 'Formato da imagem inválido.' });
+
+    await ensureReferenciaBucket();
+
+    // Upload da imagem de referência
+    const fileName = `referencias/${uuidv4()}.${parsed.extension}`;
+    const { error: uploadError } = await supabase
+      .storage
+      .from(REFERENCIA_BUCKET)
+      .upload(fileName, parsed.buffer, {
+        contentType: parsed.contentType,
+        upsert: false,
+        cacheControl: '3600'
+      });
+
+    if (uploadError) {
+      console.error('Erro no upload de referência:', uploadError);
+      return res.status(500).json({ error: 'Erro ao fazer upload da imagem' });
+    }
+
+    // Obter URL pública da imagem
+    const { data: { publicUrl } } = supabase
+      .storage
+      .from(REFERENCIA_BUCKET)
+      .getPublicUrl(fileName);
+
+    return res.status(200).json({ url: publicUrl });
+
+  } catch (error) {
+    console.error('Erro no uploadReferencia:', error);
     res.status(500).json({ error: 'Erro interno no servidor' });
   }
 };

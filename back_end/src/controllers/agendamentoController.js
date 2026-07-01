@@ -123,7 +123,8 @@ exports.criarAgendamento = async (req, res) => {
         clienteNome,
         clienteCpf,
         clienteTelefone,
-        clienteEmail
+        clienteEmail,
+        imagemReferencia
     } = req.body;
 
     try {
@@ -194,6 +195,7 @@ exports.criarAgendamento = async (req, res) => {
                 data_hora: dataAgendamento.toISOString(),
                 servico,
                 observacoes,
+                imagem_referencia: imagemReferencia || null,
                 status: 'pendente'
             })
             .select(`
@@ -202,6 +204,7 @@ exports.criarAgendamento = async (req, res) => {
          servico,
          observacoes,
          status,
+         imagem_referencia,
             cliente_nome,
             cliente_email,
             cliente_cpf,
