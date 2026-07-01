@@ -32,6 +32,9 @@ Thumbs.db
 # Supabase
 supabase/
 
+# mimo
+.mimocode/
+
 # Logs
 *.log
 npm-debug.log*
