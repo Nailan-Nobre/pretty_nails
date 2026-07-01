@@ -811,14 +811,14 @@
       uploadProgress.style.display = 'flex';
 
       try {
-        // Converter para base64
-        const base64 = await fileToBase64(file);
+        // Comprimir a imagem antes de enviar
+        const compressedBase64 = await compressImage(file);
 
         // Enviar para o servidor
         const response = await fetch(`${API_BASE}/api/upload/referencia`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: base64 })
+          body: JSON.stringify({ image: compressedBase64 })
         });
 
         const data = await response.json();
@@ -837,11 +837,40 @@
       }
     }
 
-    function fileToBase64(file) {
+    function compressImage(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Limitar dimensões máximas
+            let { width, height } = img;
+            const maxSize = 1200;
+            if (width > maxSize || height > maxSize) {
+              if (width > height) {
+                height = Math.round((height * maxSize) / width);
+                width = maxSize;
+              } else {
+                width = Math.round((width * maxSize) / height);
+                height = maxSize;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Comprimir como JPEG com qualidade 0.7
+            const compressed = canvas.toDataURL('image/jpeg', 0.7);
+            resolve(compressed);
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
         reader.readAsDataURL(file);
       });
     }
