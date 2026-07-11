@@ -76,14 +76,27 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
 
   Future<void> _checkAutoComplete() async {
     final now = DateTime.now();
+    bool changed = false;
+
     for (final a in _confirmados) {
       if (a.dataHora.isBefore(now)) {
         try {
           await AgendamentoService.atualizarStatus(a.id, AgendamentoStatus.concluido);
+          changed = true;
         } catch (_) {}
       }
     }
-    if (_confirmados.any((a) => a.dataHora.isBefore(now))) {
+
+    for (final a in _pendentes) {
+      if (a.dataHora.isBefore(now)) {
+        try {
+          await AgendamentoService.atualizarStatus(a.id, AgendamentoStatus.expirado);
+          changed = true;
+        } catch (_) {}
+      }
+    }
+
+    if (changed) {
       await _loadFromServer();
     }
   }
@@ -104,6 +117,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
         return colors.danger;
       case AgendamentoStatus.recusado:
         return colors.danger;
+      case AgendamentoStatus.expirado:
+        return colors.textSecondary;
     }
   }
 
@@ -123,6 +138,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
         return Icons.cancel;
       case AgendamentoStatus.recusado:
         return Icons.block;
+      case AgendamentoStatus.expirado:
+        return Icons.schedule;
     }
   }
 
@@ -355,8 +372,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
               ),
             ),
           ],
-          if (appointment.status == AgendamentoStatus.pendente ||
-              appointment.status == AgendamentoStatus.confirmado) ...[
+          if ((appointment.status == AgendamentoStatus.pendente ||
+              appointment.status == AgendamentoStatus.confirmado) &&
+              appointment.dataHora.isAfter(DateTime.now())) ...[
             const SizedBox(height: 12),
             Row(
               children: [

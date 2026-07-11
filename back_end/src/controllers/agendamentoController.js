@@ -322,7 +322,7 @@ exports.obterEstatisticasAgendamentos = async (req, res) => {
             .from('agendamentos')
             .select('id, data_hora, status')
             .eq('manicure_id', manicureId)
-            .in('status', ['concluido', 'cancelado', 'recusado'])
+            .in('status', ['concluido', 'cancelado', 'recusado', 'expirado'])
             .gte('data_hora', dataInicio.toISOString())
             .order('data_hora', { ascending: true });
 
@@ -344,7 +344,7 @@ exports.obterEstatisticasAgendamentos = async (req, res) => {
             data.setMonth(data.getMonth() - i);
             const mesAno = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
             const mesLabel = data.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-            
+
             estatisticasPorMes[mesAno] = {
                 concluidos: 0,
                 cancelados: 0
@@ -358,13 +358,13 @@ exports.obterEstatisticasAgendamentos = async (req, res) => {
         agendamentos.forEach(agendamento => {
             const data = new Date(agendamento.data_hora);
             const mesAno = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
-            
+
             console.log(`Processando agendamento: ${agendamento.id}, data: ${data.toISOString()}, mesAno: ${mesAno}, status: ${agendamento.status}`);
-            
+
             if (estatisticasPorMes.hasOwnProperty(mesAno)) {
                 if (agendamento.status === 'concluido') {
                     estatisticasPorMes[mesAno].concluidos++;
-                } else if (agendamento.status === 'cancelado' || agendamento.status === 'recusado') {
+                } else if (agendamento.status === 'cancelado' || agendamento.status === 'recusado' || agendamento.status === 'expirado') {
                     estatisticasPorMes[mesAno].cancelados++;
                 }
             }
@@ -428,7 +428,7 @@ exports.obterHistoricoEstatisticas = async (req, res) => {
             .from('agendamentos')
             .select('id, data_hora, status')
             .eq('manicure_id', manicureId)
-            .in('status', ['concluido', 'cancelado', 'recusado'])
+            .in('status', ['concluido', 'cancelado', 'recusado', 'expirado'])
             .gte('data_hora', dataInicio.toISOString())
             .lte('data_hora', dataFim.toISOString())
             .order('data_hora', { ascending: true });
@@ -466,7 +466,7 @@ exports.obterHistoricoEstatisticas = async (req, res) => {
             if (estatisticasPorMes.hasOwnProperty(mesAno)) {
                 if (agendamento.status === 'concluido') {
                     estatisticasPorMes[mesAno].concluidos++;
-                } else if (agendamento.status === 'cancelado' || agendamento.status === 'recusado') {
+                } else if (agendamento.status === 'cancelado' || agendamento.status === 'recusado' || agendamento.status === 'expirado') {
                     estatisticasPorMes[mesAno].cancelados++;
                 }
             }
@@ -481,7 +481,7 @@ exports.obterHistoricoEstatisticas = async (req, res) => {
             .from('agendamentos')
             .select('data_hora')
             .eq('manicure_id', manicureId)
-            .in('status', ['concluido', 'cancelado', 'recusado']);
+            .in('status', ['concluido', 'cancelado', 'recusado', 'expirado']);
 
         if (anosError) {
             console.error('Erro ao buscar anos disponíveis:', anosError);
@@ -666,7 +666,7 @@ exports.listarAgendamentosHistorico = async (req, res) => {
         manicure:manicure_id (id, nome, foto)
       `)
             .eq('manicure_id', userId)  // Alterado para pegar apenas os da manicure logada
-            .in('status', ['concluido', 'cancelado', 'recusado'])
+            .in('status', ['concluido', 'cancelado', 'recusado', 'expirado'])
             .order('data_hora', { ascending: false });
 
         if (error) throw error;
@@ -746,12 +746,13 @@ exports.atualizarStatusAgendamento = async (req, res) => {
 
         if (updateError) throw updateError;
 
-        if (agendamento.cliente_email && ['confirmado', 'cancelado', 'concluido', 'recusado'].includes(status)) {
+        if (agendamento.cliente_email && ['confirmado', 'cancelado', 'concluido', 'recusado', 'expirado'].includes(status)) {
             const statusSubjectMap = {
                 confirmado: 'Agendamento confirmado - Pretty Nails',
                 cancelado: 'Agendamento cancelado - Pretty Nails',
                 concluido: 'Atendimento concluído - Pretty Nails',
-                recusado: 'Agendamento recusado - Pretty Nails'
+                recusado: 'Agendamento recusado - Pretty Nails',
+                expirado: 'Agendamento expirado - Pretty Nails'
             };
 
             const emailStatusHtml = getStatusEmailTemplate(
@@ -775,6 +776,7 @@ exports.atualizarStatusAgendamento = async (req, res) => {
                 cancelado: 'cancelado',
                 concluido: 'concluído',
                 recusado: 'recusado',
+                expirado: 'expirado',
             };
             sendPushToManicure(
                 manicureId,
@@ -824,6 +826,12 @@ function getStatusEmailTemplate(clienteNome, manicureNome, servico, dataHora, st
         'recusado': {
             title: 'Agendamento Recusado',
             message: `Seu agendamento com ${manicureNome} foi recusado.`,
+            buttonText: 'Agendar Novamente',
+            buttonUrl: `${baseUrl}`
+        },
+        'expirado': {
+            title: 'Agendamento Expirado',
+            message: `Seu agendamento com ${manicureNome} expirou porque não foi confirmado a tempo.`,
             buttonText: 'Agendar Novamente',
             buttonUrl: `${baseUrl}`
         },

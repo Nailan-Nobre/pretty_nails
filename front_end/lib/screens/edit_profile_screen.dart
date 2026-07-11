@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import '../theme/theme_provider.dart';
 import '../models/manicure.dart';
@@ -35,10 +37,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Map<String, List<Map<String, dynamic>>> _horariosPorDia = {};
   List<Map<String, dynamic>> _servicos = [];
 
+  String? _selectedEstado;
+  String? _selectedCidade;
+  List<Map<String, String>> _estados = [];
+  List<Map<String, String>> _cidades = [];
+  bool _cidadesLoading = false;
+  bool _cidadesDisabled = true;
+
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    _carregarEstados();
   }
 
   @override
@@ -62,6 +72,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _telefoneController.text = manicure.telefone ?? '';
           _estadoController.text = manicure.estado ?? '';
           _cidadeController.text = manicure.cidade ?? '';
+          _selectedEstado = manicure.estado;
+          _selectedCidade = manicure.cidade;
+          if (_selectedEstado != null) {
+            _cidadesDisabled = false;
+            _carregarCidades(_selectedEstado!);
+          }
           _bioController.text = manicure.bio ?? '';
           _regrasController.text = manicure.regras ?? '';
           _diasTrabalho = List<int>.from(manicure.diasTrabalho ?? []);
@@ -80,6 +96,100 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (mounted) {
         setState(() => _loading = false);
       }
+    }
+  }
+
+  Future<void> _carregarEstados() async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome'),
+      );
+      if (response.statusCode == 200) {
+        final List data = json.decode(response.body);
+        setState(() {
+          _estados = data.map<Map<String, String>>((e) => {
+            'sigla': e['sigla'] as String,
+            'nome': e['nome'] as String,
+          }).toList();
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _estados = [
+          {'sigla': 'AC', 'nome': 'Acre'},
+          {'sigla': 'AL', 'nome': 'Alagoas'},
+          {'sigla': 'AP', 'nome': 'Amapá'},
+          {'sigla': 'AM', 'nome': 'Amazonas'},
+          {'sigla': 'BA', 'nome': 'Bahia'},
+          {'sigla': 'CE', 'nome': 'Ceará'},
+          {'sigla': 'DF', 'nome': 'Distrito Federal'},
+          {'sigla': 'ES', 'nome': 'Espírito Santo'},
+          {'sigla': 'GO', 'nome': 'Goiás'},
+          {'sigla': 'MA', 'nome': 'Maranhão'},
+          {'sigla': 'MT', 'nome': 'Mato Grosso'},
+          {'sigla': 'MS', 'nome': 'Mato Grosso do Sul'},
+          {'sigla': 'MG', 'nome': 'Minas Gerais'},
+          {'sigla': 'PA', 'nome': 'Pará'},
+          {'sigla': 'PB', 'nome': 'Paraíba'},
+          {'sigla': 'PR', 'nome': 'Paraná'},
+          {'sigla': 'PE', 'nome': 'Pernambuco'},
+          {'sigla': 'PI', 'nome': 'Piauí'},
+          {'sigla': 'RJ', 'nome': 'Rio de Janeiro'},
+          {'sigla': 'RN', 'nome': 'Rio Grande do Norte'},
+          {'sigla': 'RS', 'nome': 'Rio Grande do Sul'},
+          {'sigla': 'RO', 'nome': 'Rondônia'},
+          {'sigla': 'RR', 'nome': 'Roraima'},
+          {'sigla': 'SC', 'nome': 'Santa Catarina'},
+          {'sigla': 'SP', 'nome': 'São Paulo'},
+          {'sigla': 'SE', 'nome': 'Sergipe'},
+          {'sigla': 'TO', 'nome': 'Tocantins'},
+        ];
+      });
+    }
+  }
+
+  Future<void> _carregarCidades(String siglaEstado) async {
+    setState(() {
+      _cidadesLoading = true;
+      _selectedCidade = null;
+      _cidades = [];
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://servicodados.ibge.gov.br/api/v1/localidades/estados/$siglaEstado/municipios?orderBy=nome'),
+      );
+      if (response.statusCode == 200) {
+        final List data = json.decode(response.body);
+        setState(() {
+          _cidades = data.map<Map<String, String>>((e) => {
+            'nome': e['nome'] as String,
+          }).toList();
+          _cidadesLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() => _cidadesLoading = false);
+    }
+  }
+
+  void _onEstadoChanged(String? value) {
+    if (value != null) {
+      setState(() {
+        _selectedEstado = value;
+        _estadoController.text = value;
+        _cidadesDisabled = false;
+      });
+      _carregarCidades(value);
+    }
+  }
+
+  void _onCidadeChanged(String? value) {
+    if (value != null) {
+      setState(() {
+        _selectedCidade = value;
+        _cidadeController.text = value;
+      });
     }
   }
 
@@ -229,20 +339,92 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               icon: Icons.phone_outlined,
               colors: colors,
               keyboardType: TextInputType.phone,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(11),
+                _TelefoneFormatter(),
+              ],
             ),
             const SizedBox(height: 12),
-            _buildTextField(
-              controller: _estadoController,
-              label: 'Estado',
-              icon: Icons.location_on_outlined,
-              colors: colors,
+            DropdownButtonFormField<String>(
+              value: _selectedEstado,
+              decoration: InputDecoration(
+                labelText: 'Estado',
+                prefixIcon: Icon(Icons.location_on_outlined, color: colors.primary),
+                labelStyle: TextStyle(color: colors.textSecondary),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: colors.primary, width: 2),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: colors.borderColor),
+                ),
+                filled: true,
+                fillColor: colors.cardBg,
+              ),
+              items: _estados.map((estado) {
+                return DropdownMenuItem<String>(
+                  value: estado['sigla'],
+                  child: Text(estado['nome']!),
+                );
+              }).toList(),
+              onChanged: _onEstadoChanged,
             ),
             const SizedBox(height: 12),
-            _buildTextField(
-              controller: _cidadeController,
-              label: 'Cidade',
-              icon: Icons.location_city_outlined,
-              colors: colors,
+            DropdownButtonFormField<String>(
+              value: _selectedCidade,
+              decoration: InputDecoration(
+                labelText: 'Cidade',
+                prefixIcon: Icon(Icons.location_city_outlined, color: colors.primary),
+                labelStyle: TextStyle(color: colors.textSecondary),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: colors.primary, width: 2),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: colors.borderColor),
+                ),
+                filled: true,
+                fillColor: colors.cardBg,
+              ),
+              items: _cidadesDisabled
+                  ? []
+                  : _cidades.map((cidade) {
+                      return DropdownMenuItem<String>(
+                        value: cidade['nome'],
+                        child: Text(cidade['nome']!),
+                      );
+                    }).toList(),
+              onChanged: _cidadesDisabled
+                  ? (value) {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Atenção'),
+                          content: const Text('Escolha o estado primeiro.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(),
+                              child: const Text('OK'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  : _onCidadeChanged,
+              disabledHint: Text(
+                _selectedEstado == null
+                    ? 'Escolha o estado primeiro'
+                    : (_cidadesLoading ? 'Carregando cidades...' : 'Selecione a cidade'),
+                style: TextStyle(color: colors.textSecondary),
+              ),
+              icon: _cidadesDisabled
+                  ? Icon(Icons.lock_outline, color: colors.textSecondary)
+                  : Icon(Icons.arrow_drop_down, color: colors.textSecondary),
             ),
             const SizedBox(height: 20),
             _buildSectionTitle('Sobre Mim', colors),
@@ -285,6 +467,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               icon: Icons.rule_outlined,
               colors: colors,
               maxLines: 3,
+              hintText: 'Ex: Não aceito cancelamento no último momento. Troca de horário com 24h de antecedência.',
             ),
             const SizedBox(height: 30),
             SizedBox(
@@ -413,17 +596,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     String? Function(String?)? validator,
     TextInputType? keyboardType,
     int maxLines = 1,
+    List<TextInputFormatter>? inputFormatters,
+    String? hintText,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
       validator: validator,
+      inputFormatters: inputFormatters,
       style: TextStyle(color: colors.textPrimary),
       decoration: InputDecoration(
         labelText: label,
+        hintText: hintText,
         prefixIcon: Icon(icon, color: colors.primary),
         labelStyle: TextStyle(color: colors.textSecondary),
+        hintStyle: TextStyle(color: colors.textSecondary.withValues(alpha: 0.6)),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -1214,6 +1402,39 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TelefoneFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) {
+      return const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
+    }
+
+    String formatted;
+    if (digits.length <= 2) {
+      formatted = '($digits';
+    } else if (digits.length <= 7) {
+      formatted = '(${digits.substring(0, 2)}) ${digits.substring(2)}';
+    } else {
+      final ddd = digits.substring(0, 2);
+      final mid = digits.substring(2, digits.length - 4);
+      final last = digits.substring(digits.length - 4);
+      formatted = '($ddd) $mid-$last';
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

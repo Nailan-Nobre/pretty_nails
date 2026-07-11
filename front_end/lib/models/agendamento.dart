@@ -4,6 +4,7 @@ enum AgendamentoStatus {
   cancelado,
   concluido,
   recusado,
+  expirado,
 }
 
 AgendamentoStatus agendamentoStatusFromString(String status) {
@@ -18,6 +19,8 @@ AgendamentoStatus agendamentoStatusFromString(String status) {
       return AgendamentoStatus.concluido;
     case 'recusado':
       return AgendamentoStatus.recusado;
+    case 'expirado':
+      return AgendamentoStatus.expirado;
     default:
       return AgendamentoStatus.pendente;
   }
@@ -35,6 +38,8 @@ String agendamentoStatusToString(AgendamentoStatus status) {
       return 'concluido';
     case AgendamentoStatus.recusado:
       return 'recusado';
+    case AgendamentoStatus.expirado:
+      return 'expirado';
   }
 }
 
@@ -50,6 +55,8 @@ String agendamentoStatusLabel(AgendamentoStatus status) {
       return 'Concluído';
     case AgendamentoStatus.recusado:
       return 'Recusado';
+    case AgendamentoStatus.expirado:
+      return 'Expirado';
   }
 }
 
