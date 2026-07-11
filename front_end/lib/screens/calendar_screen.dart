@@ -79,6 +79,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
         return colors.danger;
       case AgendamentoStatus.recusado:
         return colors.danger;
+      case AgendamentoStatus.expirado:
+        return colors.textSecondary;
     }
   }
 
@@ -98,6 +100,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
         return Icons.cancel;
       case AgendamentoStatus.recusado:
         return Icons.block;
+      case AgendamentoStatus.expirado:
+        return Icons.schedule;
     }
   }
 
