@@ -351,6 +351,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _selectedEstado,
+              style: TextStyle(color: colors.textPrimary, fontSize: 14),
               decoration: InputDecoration(
                 labelText: 'Estado',
                 prefixIcon: Icon(Icons.location_on_outlined, color: colors.primary),
@@ -378,6 +379,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _selectedCidade,
+              style: TextStyle(color: colors.textPrimary, fontSize: 14),
               decoration: InputDecoration(
                 labelText: 'Cidade',
                 prefixIcon: Icon(Icons.location_city_outlined, color: colors.primary),

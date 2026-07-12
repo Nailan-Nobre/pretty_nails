@@ -73,10 +73,15 @@ class AuthService {
   }
 
   static Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
-    await CacheService.clearAll();
-    await OneSignalService.removeExternalUserId();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('token');
+      await prefs.remove('refresh_token');
+      await CacheService.clearAll();
+      try {
+        await OneSignalService.removeExternalUserId();
+      } catch (_) {}
+    } catch (_) {}
   }
 
   static Future<bool> isLoggedIn() async {

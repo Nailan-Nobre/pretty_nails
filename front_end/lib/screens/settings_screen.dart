@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../main.dart';
 import '../theme/theme_provider.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../services/onesignal_service.dart';
 import '../services/api_service.dart';
-import 'login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -125,14 +125,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               colors: colors,
               children: [
                 _buildNotifSection(colors),
-                _buildSwitchTile(
-                  icon: Icons.dark_mode,
-                  title: 'Modo Escuro',
-                  subtitle: 'Ativar tema escuro',
-                  value: themeProvider.isDark,
-                  colors: colors,
-                  onChanged: (value) => themeProvider.setDarkMode(value),
-                ),
+                _buildThemeSection(colors, themeProvider),
                 _buildSwitchTile(
                   icon: Icons.volume_up,
                   title: 'Sons',
@@ -253,14 +246,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           if (_notifEnabled) ...[
             const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.only(left: 48),
-              child: Column(
-                children: [
-                  _buildNotifTypeTile('app', 'Notificações no App', 'Receber notificações push no aplicativo', Icons.phone_android, colors),
-                  _buildNotifTypeTile('email', 'Notificações por E-mail', 'Receber e-mail sobre agendamentos', Icons.email_outlined, colors),
-                ],
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildNotifOption(
+                    icon: Icons.phone_android,
+                    label: 'App',
+                    isActive: _notifType == 'app',
+                    colors: colors,
+                    onTap: () => _saveNotifType('app'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildNotifOption(
+                    icon: Icons.email_outlined,
+                    label: 'E-mail',
+                    isActive: _notifType == 'email',
+                    colors: colors,
+                    onTap: () => _saveNotifType('email'),
+                  ),
+                ),
+              ],
             ),
           ],
         ],
@@ -268,36 +275,144 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildNotifTypeTile(String value, String title, String subtitle, IconData icon, AppColors colors) {
-    final isSelected = _notifType == value;
-    return InkWell(
-      onTap: () => _saveNotifType(value),
-      borderRadius: BorderRadius.circular(8),
+  Widget _buildNotifOption({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required AppColors colors,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? colors.primary.withValues(alpha: 0.08) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isSelected ? colors.primary.withValues(alpha: 0.3) : colors.borderColor),
+          color: isActive ? colors.primary.withValues(alpha: 0.15) : colors.bgTertiary,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isActive ? colors.primary : colors.borderColor,
+            width: isActive ? 1.5 : 1,
+          ),
         ),
-        child: Row(
+        child: Column(
           children: [
-            Icon(icon, size: 18, color: isSelected ? colors.primary : colors.textSecondary),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.textPrimary)),
-                  Text(subtitle, style: TextStyle(fontSize: 11, color: colors.textSecondary)),
-                ],
+            Icon(icon, size: 22, color: isActive ? colors.primary : colors.textSecondary),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                color: isActive ? colors.primary : colors.textSecondary,
               ),
             ),
-            Icon(
-              isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-              size: 20,
-              color: isSelected ? colors.primary : colors.textSecondary,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeSection(AppColors colors, ThemeProvider themeProvider) {
+    final followingSystem = themeProvider.isFollowingSystem;
+    final currentMode = themeProvider.isDark ? 'Escuro' : 'Claro';
+    final subtitle = followingSystem
+        ? 'Seguindo o tema do sistema ($currentMode)'
+        : 'Modo manual: $currentMode';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: colors.borderLight))),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: colors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                child: Icon(Icons.dark_mode, color: colors.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Tema', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: colors.textPrimary)),
+                    Text(subtitle, style: TextStyle(fontSize: 12, color: colors.textSecondary)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildThemeOption(
+                  icon: Icons.phone_iphone,
+                  label: 'Sistema',
+                  isActive: followingSystem,
+                  colors: colors,
+                  onTap: () => themeProvider.followSystem(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildThemeOption(
+                  icon: Icons.light_mode,
+                  label: 'Claro',
+                  isActive: !followingSystem && !themeProvider.isDark,
+                  colors: colors,
+                  onTap: () => themeProvider.setDarkMode(false),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildThemeOption(
+                  icon: Icons.dark_mode,
+                  label: 'Escuro',
+                  isActive: !followingSystem && themeProvider.isDark,
+                  colors: colors,
+                  onTap: () => themeProvider.setDarkMode(true),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThemeOption({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required AppColors colors,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isActive ? colors.primary.withValues(alpha: 0.15) : colors.bgTertiary,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isActive ? colors.primary : colors.borderColor,
+            width: isActive ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 20, color: isActive ? colors.primary : colors.textSecondary),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                color: isActive ? colors.primary : colors.textSecondary,
+              ),
             ),
           ],
         ),
@@ -678,10 +793,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 try {
                   await AuthService.deleteAccount(password: passwordController.text);
                   if (context.mounted) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      (route) => false,
-                    );
+                    Navigator.pop(context);
+                    navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
                   }
                 } catch (e) {
                   if (context.mounted) {
@@ -709,23 +822,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final colors = ThemeProvider.of(context).colors;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: colors.cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Sair da conta', style: TextStyle(color: colors.textPrimary)),
         content: Text('Tem certeza que deseja sair da sua conta?', style: TextStyle(color: colors.textSecondary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancelar', style: TextStyle(color: colors.textSecondary))),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('Cancelar', style: TextStyle(color: colors.textSecondary)),
+          ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               await AuthService.logout();
-              if (context.mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  (route) => false,
-                );
-              }
+              navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
             },
             child: Text('Sair', style: TextStyle(color: colors.danger)),
           ),

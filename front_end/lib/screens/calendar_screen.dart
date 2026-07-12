@@ -222,15 +222,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
           cellMargin: const EdgeInsets.all(4),
         ),
         onDaySelected: (selectedDay, focusedDay) {
-          setState(() {
-            _selectedDay = selectedDay;
-            _focusedDay = focusedDay;
-          });
+          if (!isSameDay(_selectedDay, selectedDay)) {
+            setState(() {
+              _selectedDay = selectedDay;
+              _focusedDay = focusedDay;
+            });
+          }
         },
         onPageChanged: (focusedDay) {
-          setState(() {
-            _focusedDay = focusedDay;
-          });
+          _focusedDay = focusedDay;
         },
         eventLoader: (day) {
           final key = DateTime(day.year, day.month, day.day);

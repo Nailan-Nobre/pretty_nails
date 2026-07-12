@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../main.dart';
 import '../theme/theme_provider.dart';
 import '../models/manicure.dart';
 import '../services/auth_service.dart';
 import 'settings_screen.dart';
 import 'edit_profile_screen.dart';
-import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -807,7 +807,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showLogoutDialog(BuildContext context, AppColors colors) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: colors.cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Sair da conta', style: TextStyle(color: colors.textPrimary)),
@@ -815,18 +815,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             style: TextStyle(color: colors.textSecondary)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text('Cancelar', style: TextStyle(color: colors.textSecondary)),
           ),
           TextButton(
             onPressed: () async {
+              Navigator.pop(dialogContext);
               await AuthService.logout();
-              if (context.mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  (route) => false,
-                );
-              }
+              navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
             },
             child: Text('Sair', style: TextStyle(color: colors.danger)),
           ),

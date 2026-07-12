@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/theme_provider.dart';
 import 'components/navbar.dart';
@@ -14,10 +16,25 @@ import 'services/auth_service.dart';
 import 'services/notification_service.dart';
 import 'services/onesignal_service.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
-  final isDark = prefs.getBool('dark_mode') ?? false;
+  final userHasSetTheme = prefs.getBool('dark_mode_user_set') ?? false;
+
+  // Se o usuário nunca escolheu um tema, segue o sistema
+  bool isDark;
+  bool followSystem;
+  if (userHasSetTheme) {
+    isDark = prefs.getBool('dark_mode') ?? false;
+    followSystem = false;
+  } else {
+    final systemDark = PlatformDispatcher.instance.platformBrightness == Brightness.dark;
+    isDark = systemDark;
+    followSystem = true;
+  }
+
   final isLoggedIn = await AuthService.isLoggedIn();
 
   await OneSignalService.init();
@@ -37,25 +54,39 @@ void main() async {
     }
   }
 
-  runApp(MyApp(initialDarkMode: isDark, isLoggedIn: isLoggedIn));
+  runApp(MyApp(initialDarkMode: isDark, followSystem: followSystem, isLoggedIn: isLoggedIn));
 }
 
 class MyApp extends StatelessWidget {
   final bool initialDarkMode;
+  final bool followSystem;
   final bool isLoggedIn;
-  const MyApp({super.key, required this.initialDarkMode, required this.isLoggedIn});
+  const MyApp({super.key, required this.initialDarkMode, required this.followSystem, required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {
     return ThemeScope(
       initialDarkMode: initialDarkMode,
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        initialRoute: isLoggedIn ? '/home' : '/login',
-        routes: {
-          '/login': (_) => const LoginScreen(),
-          '/signup': (_) => const SignupScreen(),
-          '/home': (_) => const MainScreen(),
+      followSystem: followSystem,
+      child: Builder(
+        builder: (context) {
+          final colors = ThemeProvider.of(context).colors;
+          return MaterialApp(
+            navigatorKey: navigatorKey,
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              brightness: ThemeProvider.of(context).isDark ? Brightness.dark : Brightness.light,
+              scaffoldBackgroundColor: colors.bgPrimary,
+              cardColor: colors.cardBg,
+              dividerColor: colors.borderColor,
+            ),
+            initialRoute: isLoggedIn ? '/home' : '/login',
+            routes: {
+              '/login': (_) => const LoginScreen(),
+              '/signup': (_) => const SignupScreen(),
+              '/home': (_) => const MainScreen(),
+            },
+          );
         },
       ),
     );

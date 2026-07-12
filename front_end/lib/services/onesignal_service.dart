@@ -71,7 +71,9 @@ class OneSignalService {
 
   static Future<void> removeExternalUserId() async {
     if (_appId.isEmpty) return;
-    await OneSignal.logout();
+    try {
+      await OneSignal.logout().timeout(const Duration(seconds: 3));
+    } catch (_) {}
   }
 
   static Future<void> sendPlayerIdToServer() async {

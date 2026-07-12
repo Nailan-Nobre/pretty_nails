@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_colors.dart';
@@ -5,9 +6,13 @@ export 'app_colors.dart';
 
 class ThemeProvider extends ChangeNotifier {
   static const _key = 'dark_mode';
+  static const _userSetKey = 'dark_mode_user_set';
   bool _isDark;
+  bool _followSystem;
 
-  ThemeProvider({required bool initialDark}) : _isDark = initialDark;
+  ThemeProvider({required bool initialDark, bool followSystem = false})
+      : _isDark = initialDark,
+        _followSystem = followSystem;
 
   static ThemeProvider of(BuildContext context) {
     return context.dependOnInheritedWidgetOfExactType<_ThemeProvider>()!.data;
@@ -17,92 +22,33 @@ class ThemeProvider extends ChangeNotifier {
 
   AppColors get colors => _isDark ? AppColors.dark : AppColors.light;
 
-  ThemeData get lightTheme {
-    final c = AppColors.light;
-    return ThemeData(
-      brightness: Brightness.light,
-      primaryColor: c.primary,
-      scaffoldBackgroundColor: c.bgPrimary,
-      cardColor: c.cardBg,
-      colorScheme: ColorScheme.light(
-        primary: c.primary,
-        secondary: c.secondary,
-        surface: c.bgPrimary,
-        error: c.danger,
-        onPrimary: c.textLight,
-        onSecondary: c.textLight,
-        onSurface: c.textPrimary,
-      ),
-      appBarTheme: AppBarTheme(
-        backgroundColor: c.bgPrimary,
-        foregroundColor: c.textPrimary,
-        elevation: 0,
-      ),
-      textTheme: TextTheme(
-        bodyLarge: TextStyle(color: c.textPrimary),
-        bodyMedium: TextStyle(color: c.textPrimary),
-        bodySmall: TextStyle(color: c.textSecondary),
-      ),
-      dividerColor: c.borderColor,
-      switchTheme: SwitchThemeData(
-        thumbColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return c.primary;
-          return c.disabledText;
-        }),
-        trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return c.primaryLight;
-          return c.disabledBg;
-        }),
-      ),
-    );
-  }
+  /// Retorna true se o tema está seguindo o sistema (sem preferência manual)
+  bool get isFollowingSystem => _followSystem;
 
-  ThemeData get darkTheme {
-    final c = AppColors.dark;
-    return ThemeData(
-      brightness: Brightness.dark,
-      primaryColor: c.primary,
-      scaffoldBackgroundColor: c.bgPrimary,
-      cardColor: c.cardBg,
-      colorScheme: ColorScheme.dark(
-        primary: c.primary,
-        secondary: c.secondary,
-        surface: c.bgSecondary,
-        error: c.danger,
-        onPrimary: c.textLight,
-        onSecondary: c.textLight,
-        onSurface: c.textPrimary,
-      ),
-      appBarTheme: AppBarTheme(
-        backgroundColor: c.bgSecondary,
-        foregroundColor: c.textPrimary,
-        elevation: 0,
-      ),
-      textTheme: TextTheme(
-        bodyLarge: TextStyle(color: c.textPrimary),
-        bodyMedium: TextStyle(color: c.textPrimary),
-        bodySmall: TextStyle(color: c.textSecondary),
-      ),
-      dividerColor: c.borderColor,
-      switchTheme: SwitchThemeData(
-        thumbColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return c.primary;
-          return c.disabledText;
-        }),
-        trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return c.primaryLight;
-          return c.disabledBg;
-        }),
-      ),
-    );
+  /// Cor para usar na tela de login/cadastro (sempre baseada no sistema)
+  AppColors get systemColors {
+    final systemDark = PlatformDispatcher.instance.platformBrightness == Brightness.dark;
+    return systemDark ? AppColors.dark : AppColors.light;
   }
 
   Future<void> setDarkMode(bool value) async {
-    if (_isDark == value) return;
     _isDark = value;
+    _followSystem = false;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_key, _isDark);
+    await prefs.setBool(_userSetKey, true);
+  }
+
+  /// Volta a seguir o tema do sistema
+  Future<void> followSystem() async {
+    final systemDark = PlatformDispatcher.instance.platformBrightness == Brightness.dark;
+    _isDark = systemDark;
+    _followSystem = true;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_key, _isDark);
+    await prefs.setBool(_userSetKey, false);
   }
 }
 
@@ -118,7 +64,8 @@ class _ThemeProvider extends InheritedWidget {
 class ThemeScope extends StatefulWidget {
   final Widget child;
   final bool initialDarkMode;
-  const ThemeScope({super.key, required this.child, this.initialDarkMode = false});
+  final bool followSystem;
+  const ThemeScope({super.key, required this.child, this.initialDarkMode = false, this.followSystem = false});
 
   @override
   State<ThemeScope> createState() => _ThemeScopeState();
@@ -130,7 +77,7 @@ class _ThemeScopeState extends State<ThemeScope> {
   @override
   void initState() {
     super.initState();
-    _provider = ThemeProvider(initialDark: widget.initialDarkMode);
+    _provider = ThemeProvider(initialDark: widget.initialDarkMode, followSystem: widget.followSystem);
     _provider.addListener(_onThemeChanged);
   }
 
@@ -149,13 +96,7 @@ class _ThemeScopeState extends State<ThemeScope> {
   Widget build(BuildContext context) {
     return _ThemeProvider(
       data: _provider,
-      child: MaterialApp(
-        title: 'Pretty Nails',
-        theme: _provider.lightTheme,
-        darkTheme: _provider.darkTheme,
-        themeMode: _provider.isDark ? ThemeMode.dark : ThemeMode.light,
-        home: widget.child,
-      ),
+      child: widget.child,
     );
   }
 }
