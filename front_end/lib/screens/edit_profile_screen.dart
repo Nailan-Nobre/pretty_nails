@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -28,7 +28,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _bioController = TextEditingController();
   final _regrasController = TextEditingController();
 
-  File? _selectedImage;
+  Uint8List? _selectedImageBytes;
   String? _base64Image;
 
   List<int> _diasTrabalho = [];
@@ -227,7 +227,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final mime = 'image/jpeg';
 
     setState(() {
-      _selectedImage = File(picked.path);
+      _selectedImageBytes = bytes;
       _base64Image = 'data:$mime;base64,${base64Encode(bytes)}';
     });
   }
@@ -558,8 +558,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildPhotoContent(AppColors colors) {
-    if (_selectedImage != null) {
-      return Image.file(_selectedImage!, width: 120, height: 120, fit: BoxFit.cover);
+    if (_selectedImageBytes != null) {
+      return Image.memory(_selectedImageBytes!, width: 120, height: 120, fit: BoxFit.cover);
     }
     if (_manicure?.foto != null && _manicure!.foto!.isNotEmpty) {
       return Image.network(
