@@ -1,5 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import '../theme/theme_provider.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
 import '../services/onesignal_service.dart';
@@ -68,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = AppColors.light;
+    final colors = kIsWeb ? AppColors.light : ThemeProvider.of(context).colors;
 
     return Scaffold(
       backgroundColor: colors.bgPrimary,

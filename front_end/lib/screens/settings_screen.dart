@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
@@ -27,9 +28,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadPrefs() async {
     final prefs = await SharedPreferences.getInstance();
+    final savedType = prefs.getString('notif_type') ?? 'app';
     setState(() {
       _notifEnabled = prefs.getBool('notif_enabled') ?? true;
-      _notifType = prefs.getString('notif_type') ?? 'app';
+      // Na web, sempre força email (push não suportado)
+      _notifType = kIsWeb ? 'email' : savedType;
       _soundEnabled = prefs.getBool('sound_enabled') ?? true;
     });
   }
@@ -37,10 +40,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _saveNotifPref(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('notif_enabled', enabled);
-    await prefs.setBool('notif_app', enabled && _notifType == 'app');
+    // Na web, push não existe — sempre email
+    final effectiveType = kIsWeb ? 'email' : _notifType;
+    await prefs.setBool('notif_app', enabled && effectiveType == 'app');
     setState(() => _notifEnabled = enabled);
 
-    if (enabled && _notifType == 'app') {
+    if (!kIsWeb && enabled && effectiveType == 'app') {
       final granted = await OneSignalService.requestPermission();
       if (granted) {
         await OneSignalService.optIn();
@@ -57,19 +62,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     try {
       await ApiService.put('/auth/profile', body: {
-        'notificacoes_email': enabled && _notifType == 'email',
-        'notificacoes_push': enabled && _notifType == 'app',
+        'notificacoes_email': enabled && effectiveType == 'email',
+        'notificacoes_push': enabled && effectiveType == 'app',
       });
     } catch (_) {}
   }
 
   Future<void> _saveNotifType(String type) async {
+    // Na web, só email é permitido
+    if (kIsWeb && type == 'app') return;
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('notif_type', type);
     await prefs.setBool('notif_app', _notifEnabled && type == 'app');
     setState(() => _notifType = type);
 
-    if (type == 'app' && _notifEnabled) {
+    if (!kIsWeb && type == 'app' && _notifEnabled) {
       final granted = await OneSignalService.requestPermission();
       if (granted) {
         await OneSignalService.optIn();
@@ -249,13 +257,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _buildNotifOption(
-                    icon: Icons.phone_android,
-                    label: 'App',
-                    isActive: _notifType == 'app',
-                    colors: colors,
-                    onTap: () => _saveNotifType('app'),
-                  ),
+                  child: kIsWeb
+                      ? _buildNotifOptionDisabled(
+                          icon: Icons.phone_android,
+                          label: 'App',
+                          colors: colors,
+                        )
+                      : _buildNotifOption(
+                          icon: Icons.phone_android,
+                          label: 'App',
+                          isActive: _notifType == 'app',
+                          colors: colors,
+                          onTap: () => _saveNotifType('app'),
+                        ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -269,6 +283,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
+            if (kIsWeb) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colors.info.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: colors.info.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 14, color: colors.info),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Notificações push estão disponíveis apenas no aplicativo mobile.',
+                        style: TextStyle(fontSize: 11, color: colors.textSecondary),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ],
       ),
@@ -308,6 +345,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildNotifOptionDisabled({
+    required IconData icon,
+    required String label,
+    required AppColors colors,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        color: colors.disabledBg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.borderColor, width: 1),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 22, color: colors.disabledText),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w400,
+              color: colors.disabledText,
+            ),
+          ),
+        ],
       ),
     );
   }

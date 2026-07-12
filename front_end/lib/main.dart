@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -70,12 +71,18 @@ class MyApp extends StatelessWidget {
       followSystem: followSystem,
       child: Builder(
         builder: (context) {
-          final colors = ThemeProvider.of(context).colors;
+          final themeProvider = ThemeProvider.of(context);
+          // Na web, tela de login/cadastro sempre usa tema claro
+          final useLightTheme = kIsWeb && !isLoggedIn;
+          final colors = useLightTheme ? AppColors.light : themeProvider.colors;
+          final brightness = useLightTheme
+              ? Brightness.light
+              : (themeProvider.isDark ? Brightness.dark : Brightness.light);
           return MaterialApp(
             navigatorKey: navigatorKey,
             debugShowCheckedModeBanner: false,
             theme: ThemeData(
-              brightness: ThemeProvider.of(context).isDark ? Brightness.dark : Brightness.light,
+              brightness: brightness,
               scaffoldBackgroundColor: colors.bgPrimary,
               cardColor: colors.cardBg,
               dividerColor: colors.borderColor,

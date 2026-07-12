@@ -1,8 +1,9 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import '../theme/app_colors.dart';
+import '../theme/theme_provider.dart';
 import '../services/auth_service.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -197,7 +198,7 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   InputDecoration _inputDecoration(String label, IconData icon, {Widget? suffixIcon}) {
-    final colors = AppColors.light;
+    final colors = kIsWeb ? AppColors.light : ThemeProvider.of(context).colors;
     return InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon, color: colors.primary),
@@ -214,7 +215,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = AppColors.light;
+    final colors = kIsWeb ? AppColors.light : ThemeProvider.of(context).colors;
 
     return Scaffold(
       backgroundColor: colors.bgPrimary,
