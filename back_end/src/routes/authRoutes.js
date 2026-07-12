@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { 
+const {
   signUp,
   confirmEmail,
   resendConfirmation,
@@ -10,7 +10,10 @@ const {
   getManicureBySlug,
   updateProfile,
   refreshToken,
-  savePlayerId
+  savePlayerId,
+  changeEmail,
+  changePassword,
+  deleteAccount
 } = require('../controllers/authController');
 const uploadController = require('../controllers/uploadController');
 const { authenticate } = require('../middlewares/authMiddleware');
@@ -29,5 +32,8 @@ router.put('/profile', authenticate, updateProfile);
 router.post('/upload', authenticate, uploadController.uploadImagem);
 router.get('/profile', authenticate, getUserProfile);
 router.post('/player-id', authenticate, savePlayerId);
+router.post('/change-email', authenticate, changeEmail);
+router.post('/change-password', authenticate, changePassword);
+router.post('/delete-account', authenticate, deleteAccount);
 
 module.exports = router;

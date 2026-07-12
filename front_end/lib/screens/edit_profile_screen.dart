@@ -76,7 +76,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _selectedCidade = manicure.cidade;
           if (_selectedEstado != null) {
             _cidadesDisabled = false;
-            _carregarCidades(_selectedEstado!);
+            _carregarCidades(_selectedEstado!, cidadeInicial: manicure.cidade);
           }
           _bioController.text = manicure.bio ?? '';
           _regrasController.text = manicure.regras ?? '';
@@ -148,10 +148,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  Future<void> _carregarCidades(String siglaEstado) async {
+  Future<void> _carregarCidades(String siglaEstado, {String? cidadeInicial}) async {
     setState(() {
       _cidadesLoading = true;
-      _selectedCidade = null;
+      _selectedCidade = cidadeInicial;
       _cidades = [];
     });
 
@@ -166,6 +166,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             'nome': e['nome'] as String,
           }).toList();
           _cidadesLoading = false;
+          if (cidadeInicial != null) {
+            _selectedCidade = cidadeInicial;
+          }
         });
       }
     } catch (e) {

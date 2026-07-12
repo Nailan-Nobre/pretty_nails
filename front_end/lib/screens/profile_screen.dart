@@ -701,20 +701,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       },
                     ),
                     _buildMenuItem(
-                      icon: Icons.calendar_today_outlined,
-                      title: 'Meus Agendamentos',
-                      subtitle: 'Gerencie todos os agendamentos',
-                      colors: colors,
-                      onTap: () => Navigator.pop(context),
-                    ),
-                    _buildMenuItem(
-                      icon: Icons.history,
-                      title: 'Histórico',
-                      subtitle: 'Veja o histórico completo',
-                      colors: colors,
-                      onTap: () => Navigator.pop(context),
-                    ),
-                    _buildMenuItem(
                       icon: Icons.analytics_outlined,
                       title: 'Estatísticas',
                       subtitle: 'Análise completa do seu negócio',
@@ -733,13 +719,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           MaterialPageRoute(builder: (_) => const SettingsScreen()),
                         );
                       },
-                    ),
-                    _buildMenuItem(
-                      icon: Icons.help_outline,
-                      title: 'Ajuda e Suporte',
-                      subtitle: 'Tire suas dúvidas',
-                      colors: colors,
-                      onTap: () => Navigator.pop(context),
                     ),
                     Divider(height: 24, color: colors.borderColor),
                     _buildMenuItem(

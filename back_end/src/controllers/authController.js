@@ -428,6 +428,189 @@ exports.savePlayerId = async (req, res) => {
   }
 }
 
+// Alterar e-mail
+exports.changeEmail = async (req, res) => {
+  const { newEmail, password } = req.body
+  const userId = req.user.id
+
+  try {
+    if (!newEmail || !newEmail.includes('@')) {
+      return res.status(400).json({ success: false, error: 'E-mail inválido' })
+    }
+
+    if (!password) {
+      return res.status(400).json({ success: false, error: 'Informe sua senha atual' })
+    }
+
+    // Verificar senha atual
+    const { data: userData } = await supabase.auth.admin.getUserById(userId)
+    if (!userData?.user?.email) {
+      return res.status(400).json({ success: false, error: 'Usuário não encontrado' })
+    }
+
+    // Tentar fazer login com a senha atual para validar
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: userData.user.email,
+      password: password
+    })
+
+    if (signInError) {
+      return res.status(400).json({ success: false, error: 'Senha incorreta' })
+    }
+
+    // Verificar se o novo e-mail já está em uso
+    const { data: existingUsers } = await supabase.auth.admin.listUsers()
+    const emailInUse = existingUsers?.users?.some(u => u.email === newEmail && u.id !== userId)
+    if (emailInUse) {
+      return res.status(400).json({ success: false, error: 'Este e-mail já está em uso' })
+    }
+
+    // Atualizar e-mail no Supabase Auth
+    const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
+      email: newEmail,
+      email_confirm: false
+    })
+
+    if (updateError) throw updateError
+
+    // Atualizar e-mail na tabela manicures
+    const { error: profileError } = await supabase
+      .from('manicures')
+      .update({ email: newEmail })
+      .eq('id', userId)
+
+    if (profileError) throw profileError
+
+    // Enviar e-mail de confirmação para o novo e-mail
+    const confirmToken = jwt.sign(
+      { userId, email: newEmail },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    )
+
+    const backendUrl = getBackendUrl(req)
+    const frontendUrl = getFrontendUrl()
+    const confirmLink = `${backendUrl}/auth/confirm?token=${confirmToken}&redirect=${encodeURIComponent(frontendUrl + '/confirmacao.html')}`
+    const nome = userData.user.user_metadata?.nome || 'usuária'
+
+    await sendConfirmationEmail(newEmail, nome, confirmLink)
+
+    res.json({
+      success: true,
+      message: 'E-mail alterado. Verifique sua caixa de entrada para confirmar o novo e-mail.'
+    })
+
+  } catch (error) {
+    console.error('Erro ao alterar e-mail:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Erro ao alterar e-mail'
+    })
+  }
+}
+
+// Alterar senha
+exports.changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body
+  const userId = req.user.id
+
+  try {
+    if (!currentPassword) {
+      return res.status(400).json({ success: false, error: 'Informe sua senha atual' })
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ success: false, error: 'A nova senha deve ter pelo menos 6 caracteres' })
+    }
+
+    // Verificar senha atual fazendo login
+    const { data: userData } = await supabase.auth.admin.getUserById(userId)
+    if (!userData?.user?.email) {
+      return res.status(400).json({ success: false, error: 'Usuário não encontrado' })
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: userData.user.email,
+      password: currentPassword
+    })
+
+    if (signInError) {
+      return res.status(400).json({ success: false, error: 'Senha atual incorreta' })
+    }
+
+    // Atualizar senha
+    const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
+      password: newPassword
+    })
+
+    if (updateError) throw updateError
+
+    res.json({
+      success: true,
+      message: 'Senha alterada com sucesso'
+    })
+
+  } catch (error) {
+    console.error('Erro ao alterar senha:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Erro ao alterar senha'
+    })
+  }
+}
+
+// Excluir conta
+exports.deleteAccount = async (req, res) => {
+  const { password } = req.body
+  const userId = req.user.id
+
+  try {
+    if (!password) {
+      return res.status(400).json({ success: false, error: 'Informe sua senha para confirmar' })
+    }
+
+    // Verificar senha fazendo login
+    const { data: userData } = await supabase.auth.admin.getUserById(userId)
+    if (!userData?.user?.email) {
+      return res.status(400).json({ success: false, error: 'Usuário não encontrado' })
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: userData.user.email,
+      password: password
+    })
+
+    if (signInError) {
+      return res.status(400).json({ success: false, error: 'Senha incorreta' })
+    }
+
+    // Deletar dados da tabela manicures (cascata deve cuidar dos agendamentos)
+    const { error: deleteProfileError } = await supabase
+      .from('manicures')
+      .delete()
+      .eq('id', userId)
+
+    if (deleteProfileError) throw deleteProfileError
+
+    // Deletar usuário do Supabase Auth
+    const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(userId)
+
+    if (deleteAuthError) throw deleteAuthError
+
+    res.json({
+      success: true,
+      message: 'Conta excluída com sucesso'
+    })
+
+  } catch (error) {
+    console.error('Erro ao excluir conta:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Erro ao excluir conta'
+    })
+  }
+}
+
 function slugify(text) {
   return text
     .toLowerCase()

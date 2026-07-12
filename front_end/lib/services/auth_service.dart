@@ -83,4 +83,34 @@ class AuthService {
     final token = await ApiService.getToken();
     return token != null;
   }
+
+  static Future<Map<String, dynamic>> changeEmail({
+    required String newEmail,
+    required String password,
+  }) async {
+    return await ApiService.post('/auth/change-email', body: {
+      'newEmail': newEmail,
+      'password': password,
+    });
+  }
+
+  static Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    return await ApiService.post('/auth/change-password', body: {
+      'currentPassword': currentPassword,
+      'newPassword': newPassword,
+    });
+  }
+
+  static Future<Map<String, dynamic>> deleteAccount({
+    required String password,
+  }) async {
+    final response = await ApiService.post('/auth/delete-account', body: {
+      'password': password,
+    });
+    await logout();
+    return response;
+  }
 }

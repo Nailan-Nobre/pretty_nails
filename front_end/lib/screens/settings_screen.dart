@@ -155,16 +155,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildActionTile(
                   icon: Icons.email_outlined,
                   title: 'Alterar E-mail',
-                  subtitle: 'maria.silva@email.com',
+                  subtitle: 'Alterar o e-mail da conta',
                   colors: colors,
-                  onTap: () => _showSnackbar('Alterar e-mail'),
+                  onTap: () => _showChangeEmailDialog(context),
                 ),
                 _buildActionTile(
                   icon: Icons.lock_outlined,
                   title: 'Alterar Senha',
-                  subtitle: '••••••••',
+                  subtitle: 'Alterar a senha da conta',
                   colors: colors,
-                  onTap: () => _showSnackbar('Alterar senha'),
+                  onTap: () => _showChangePasswordDialog(context),
                 ),
                 _buildActionTile(
                   icon: Icons.delete_outline,
@@ -173,27 +173,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   colors: colors,
                   onTap: () => _showDeleteAccountDialog(context),
                   isDestructive: true,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildSection(
-              title: 'Privacidade e Segurança',
-              colors: colors,
-              children: [
-                _buildActionTile(
-                  icon: Icons.visibility_outlined,
-                  title: 'Conta Privada/Pública',
-                  subtitle: 'Atualmente: Pública',
-                  colors: colors,
-                  onTap: () => _showSnackbar('Alterar visibilidade'),
-                ),
-                _buildActionTile(
-                  icon: Icons.security_outlined,
-                  title: 'Permissões do App',
-                  subtitle: 'Gerenciar permissões',
-                  colors: colors,
-                  onTap: () => _showSnackbar('Permissões do app'),
                 ),
               ],
             ),
@@ -215,20 +194,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: 'Política de Privacidade',
                   colors: colors,
                   onTap: () => _showSnackbar('Termos de uso'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildSection(
-              title: 'Versão do App',
-              colors: colors,
-              children: [
-                _buildActionTile(
-                  icon: Icons.sync_outlined,
-                  title: 'Verificar Atualizações',
-                  subtitle: 'Versão 1.0.0',
-                  colors: colors,
-                  onTap: () => _showSnackbar('Verificando atualizações...'),
                 ),
               ],
             ),
@@ -426,28 +391,316 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showSnackbar(String message) {
+  void _showSnackbar(String message, {bool isError = false}) {
+    final colors = ThemeProvider.of(context).colors;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), duration: const Duration(seconds: 1), backgroundColor: ThemeProvider.of(context).colors.bgTertiary),
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+        backgroundColor: isError ? colors.danger : colors.success,
+      ),
+    );
+  }
+
+  void _showChangeEmailDialog(BuildContext context) {
+    final colors = ThemeProvider.of(context).colors;
+    final currentPasswordController = TextEditingController();
+    final newEmailController = TextEditingController();
+    final confirmEmailController = TextEditingController();
+    bool _loading = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: colors.cardBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('Alterar E-mail', style: TextStyle(color: colors.textPrimary)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Um link de confirmação será enviado para o novo e-mail.',
+                  style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: currentPasswordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Senha atual',
+                    prefixIcon: Icon(Icons.lock_outlined, color: colors.primary),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: newEmailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: 'Novo e-mail',
+                    prefixIcon: Icon(Icons.email_outlined, color: colors.primary),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: confirmEmailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: 'Confirmar novo e-mail',
+                    prefixIcon: Icon(Icons.email_outlined, color: colors.primary),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancelar', style: TextStyle(color: colors.textSecondary)),
+            ),
+            TextButton(
+              onPressed: _loading ? null : () async {
+                if (currentPasswordController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Informe sua senha atual')),
+                  );
+                  return;
+                }
+                if (newEmailController.text.isEmpty || !newEmailController.text.contains('@')) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Informe um e-mail válido')),
+                  );
+                  return;
+                }
+                if (newEmailController.text != confirmEmailController.text) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Os e-mails não coincidem')),
+                  );
+                  return;
+                }
+
+                setDialogState(() => _loading = true);
+
+                try {
+                  final result = await AuthService.changeEmail(
+                    newEmail: newEmailController.text.trim(),
+                    password: currentPasswordController.text,
+                  );
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    _showSnackbar(result['message'] ?? 'E-mail alterado. Verifique sua caixa de entrada.');
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    setDialogState(() => _loading = false);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(e.toString().contains(':') ? e.toString().split(':').last.trim() : 'Erro ao alterar e-mail'),
+                        backgroundColor: colors.danger,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: _loading
+                  ? SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
+                  : Text('Alterar', style: TextStyle(color: colors.primary)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog(BuildContext context) {
+    final colors = ThemeProvider.of(context).colors;
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    bool _loading = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: colors.cardBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('Alterar Senha', style: TextStyle(color: colors.textPrimary)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: currentPasswordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Senha atual',
+                    prefixIcon: Icon(Icons.lock_outlined, color: colors.primary),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: newPasswordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Nova senha',
+                    prefixIcon: Icon(Icons.lock_reset_outlined, color: colors.primary),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: confirmPasswordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Confirmar nova senha',
+                    prefixIcon: Icon(Icons.lock_reset_outlined, color: colors.primary),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancelar', style: TextStyle(color: colors.textSecondary)),
+            ),
+            TextButton(
+              onPressed: _loading ? null : () async {
+                if (currentPasswordController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Informe sua senha atual')),
+                  );
+                  return;
+                }
+                if (newPasswordController.text.length < 6) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('A nova senha deve ter pelo menos 6 caracteres')),
+                  );
+                  return;
+                }
+                if (newPasswordController.text != confirmPasswordController.text) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('As senhas não coincidem')),
+                  );
+                  return;
+                }
+
+                setDialogState(() => _loading = true);
+
+                try {
+                  final result = await AuthService.changePassword(
+                    currentPassword: currentPasswordController.text,
+                    newPassword: newPasswordController.text,
+                  );
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    _showSnackbar(result['message'] ?? 'Senha alterada com sucesso!');
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    setDialogState(() => _loading = false);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(e.toString().contains(':') ? e.toString().split(':').last.trim() : 'Erro ao alterar senha'),
+                        backgroundColor: colors.danger,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: _loading
+                  ? SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
+                  : Text('Alterar', style: TextStyle(color: colors.primary)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   void _showDeleteAccountDialog(BuildContext context) {
     final colors = ThemeProvider.of(context).colors;
+    final passwordController = TextEditingController();
+    bool _loading = false;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: colors.cardBg,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Excluir Conta', style: TextStyle(color: colors.danger)),
-        content: Text('Tem certeza que deseja excluir sua conta? Esta ação é irreversível.', style: TextStyle(color: colors.textPrimary)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancelar', style: TextStyle(color: colors.textSecondary))),
-          TextButton(
-            onPressed: () { Navigator.pop(context); _showSnackbar('Conta excluída com sucesso'); },
-            child: Text('Excluir', style: TextStyle(color: colors.danger)),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: colors.cardBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('Excluir Conta', style: TextStyle(color: colors.danger)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tem certeza que deseja excluir sua conta? Esta ação é irreversível e todos os seus dados serão perdidos.',
+                  style: TextStyle(color: colors.textPrimary),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Digite sua senha para confirmar',
+                    prefixIcon: Icon(Icons.lock_outlined, color: colors.danger),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancelar', style: TextStyle(color: colors.textSecondary)),
+            ),
+            TextButton(
+              onPressed: _loading ? null : () async {
+                if (passwordController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Informe sua senha para confirmar')),
+                  );
+                  return;
+                }
+
+                setDialogState(() => _loading = true);
+
+                try {
+                  await AuthService.deleteAccount(password: passwordController.text);
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (route) => false,
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    setDialogState(() => _loading = false);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(e.toString().contains(':') ? e.toString().split(':').last.trim() : 'Erro ao excluir conta'),
+                        backgroundColor: colors.danger,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: _loading
+                  ? SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: colors.danger))
+                  : Text('Excluir', style: TextStyle(color: colors.danger)),
+            ),
+          ],
+        ),
       ),
     );
   }
