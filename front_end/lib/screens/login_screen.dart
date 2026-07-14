@@ -47,7 +47,15 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } on ApiException catch (e) {
       setState(() {
-        _errorMessage = e.message;
+        if (e.statusCode == 0) {
+          _errorMessage = 'Erro de conexão com o servidor. Verifique sua internet.';
+        } else if (e.statusCode == 401) {
+          _errorMessage = 'E-mail ou senha incorretos. Verifique e tente novamente.';
+        } else if (e.statusCode == 403) {
+          _errorMessage = 'E-mail ainda não confirmado. Verifique sua caixa de entrada.';
+        } else {
+          _errorMessage = e.message;
+        }
       });
     } catch (e) {
       setState(() {

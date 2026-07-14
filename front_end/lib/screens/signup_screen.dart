@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import '../theme/theme_provider.dart';
 import '../services/auth_service.dart';
+import '../services/api_service.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -177,6 +178,16 @@ class _SignupScreenState extends State<SignupScreen> {
           });
         }
       }
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() {
+          if (e.statusCode == 0) {
+            _errorMessage = 'Erro de conexão com o servidor. Verifique sua internet.';
+          } else {
+            _errorMessage = e.message;
+          }
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -185,6 +196,8 @@ class _SignupScreenState extends State<SignupScreen> {
             _errorMessage = 'Este e-mail já está cadastrado. Faça login ou use outro e-mail.';
           } else if (msg.contains('rate') || msg.contains('limit')) {
             _errorMessage = 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+          } else if (msg.contains('connection') || msg.contains('CORS') || msg.contains('XMLHttpRequest')) {
+            _errorMessage = 'Erro de conexão com o servidor. Verifique sua internet.';
           } else {
             _errorMessage = 'Erro ao criar conta. Verifique seus dados e tente novamente.';
           }

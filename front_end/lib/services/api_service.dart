@@ -158,7 +158,24 @@ class ApiService {
   }
 
   static Map<String, dynamic> _handleResponse(http.Response response) {
-    final body = jsonDecode(response.body);
+    // Na web, CORS bloqueado retorna status 0 e body vazio
+    if (response.statusCode == 0) {
+      throw ApiException(
+        statusCode: 0,
+        message: 'Erro de conexão. Verifique sua internet e tente novamente.',
+      );
+    }
+
+    Map<String, dynamic> body;
+    try {
+      body = jsonDecode(response.body);
+    } catch (_) {
+      throw ApiException(
+        statusCode: response.statusCode,
+        message: 'Resposta inválida do servidor.',
+      );
+    }
+
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return body;
     }
