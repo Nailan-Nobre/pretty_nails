@@ -3,10 +3,10 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = String.fromEnvironment(
+  static final String baseUrl = String.fromEnvironment(
     'BACKEND_URL',
     defaultValue: 'https://pretty-nails-do11.vercel.app',
-  );
+  ).replaceAll(RegExp(r'/+$'), '');
 
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
