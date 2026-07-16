@@ -54,19 +54,12 @@ class _LoginScreenState extends State<LoginScreen> {
         } else if (e.statusCode == 403) {
           _errorMessage = 'E-mail ainda não confirmado. Verifique sua caixa de entrada.';
         } else {
-          _errorMessage = e.message;
+          _errorMessage = 'Erro ao fazer login. Tente novamente.';
         }
       });
     } catch (e) {
       setState(() {
-        final msg = e.toString();
-        if (msg.contains('E-mail ou senha incorretos')) {
-          _errorMessage = 'E-mail ou senha incorretos. Verifique e tente novamente.';
-        } else if (msg.contains('não confirmado') || msg.contains('not confirmed')) {
-          _errorMessage = 'E-mail ainda não confirmado. Verifique sua caixa de entrada.';
-        } else {
-          _errorMessage = 'Erro ao fazer login. Tente novamente.';
-        }
+        _errorMessage = 'Erro ao fazer login. Tente novamente.';
       });
     } finally {
       if (mounted) {

@@ -3,10 +3,11 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static final String baseUrl = String.fromEnvironment(
+  static const String _rawBaseUrl = String.fromEnvironment(
     'BACKEND_URL',
     defaultValue: 'https://pretty-nails-do11.vercel.app',
-  ).replaceAll(RegExp(r'/+$'), '');
+  );
+  static final String baseUrl = _rawBaseUrl.replaceAll(RegExp(r'/+$'), '');
 
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -90,8 +91,9 @@ class ApiService {
 
   static Future<Map<String, dynamic>> post(String path, {Map<String, dynamic>? body}) async {
     final headers = await _headers();
+    final url = '$baseUrl$path';
     var response = await http.post(
-      Uri.parse('$baseUrl$path'),
+      Uri.parse(url),
       headers: headers,
       body: body != null ? jsonEncode(body) : null,
     );
@@ -101,7 +103,7 @@ class ApiService {
       if (refreshed) {
         final newHeaders = await _headers();
         response = await http.post(
-          Uri.parse('$baseUrl$path'),
+          Uri.parse(url),
           headers: newHeaders,
           body: body != null ? jsonEncode(body) : null,
         );
@@ -158,7 +160,6 @@ class ApiService {
   }
 
   static Map<String, dynamic> _handleResponse(http.Response response) {
-    // Na web, CORS bloqueado retorna status 0 e body vazio
     if (response.statusCode == 0) {
       throw ApiException(
         statusCode: 0,
