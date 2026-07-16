@@ -1,6 +1,6 @@
 const supabase = require('../config/db')
 const jwt = require('jsonwebtoken')
-const { sendConfirmationEmail } = require('../services/emailService')
+const { sendConfirmationEmail, sendSupportEmail, sendPasswordResetEmail } = require('../services/emailService')
 
 const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || 'pretty-nails-secret'
 
@@ -656,5 +656,119 @@ function getFrontendUrl() {
     return 'https://pretty-nails-app.vercel.app'
   }
   return url
+}
+
+// Enviar mensagem de suporte
+exports.sendSupportMessage = async (req, res) => {
+  const { message } = req.body
+  const userId = req.user.id
+
+  try {
+    if (!message || message.trim().length === 0) {
+      return res.status(400).json({ success: false, error: 'Informe sua mensagem' })
+    }
+
+    const { data: userData, error: userError } = await supabase
+      .from('manicures')
+      .select('nome, email')
+      .eq('id', userId)
+      .single()
+
+    if (userError || !userData) {
+      return res.status(404).json({ success: false, error: 'Usuário não encontrado' })
+    }
+
+    const sent = await sendSupportEmail(userData.nome, userData.email, message.trim())
+
+    if (!sent) {
+      return res.status(500).json({ success: false, error: 'Erro ao enviar mensagem. Tente novamente.' })
+    }
+
+    res.json({ success: true, message: 'Mensagem enviada com sucesso!' })
+  } catch (error) {
+    console.error('Erro ao enviar suporte:', error)
+    res.status(500).json({ success: false, error: 'Erro ao enviar mensagem' })
+  }
+}
+
+// Esqueci minha senha - enviar e-mail de redefinição
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body
+
+  try {
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ success: false, error: 'Informe um e-mail válido' })
+    }
+
+    const { data: existingUser } = await supabase.auth.admin.listUsers()
+    const user = existingUser?.users?.find(u => u.email === email)
+
+    if (!user) {
+      return res.json({ success: true, message: 'Se o e-mail estiver cadastrado, você receberá um link para redefinir sua senha.' })
+    }
+
+    const nome = user.user_metadata?.nome || 'usuária'
+
+    const resetToken = jwt.sign(
+      { userId: user.id, email },
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    )
+
+    const backendUrl = getBackendUrl(req)
+    const frontendUrl = getFrontendUrl()
+    const resetLink = `${backendUrl}/auth/reset-password?token=${resetToken}&redirect=${encodeURIComponent(frontendUrl + '/resetar-senha.html')}`
+
+    const sent = await sendPasswordResetEmail(email, nome, resetLink)
+
+    if (!sent) {
+      return res.status(500).json({ success: false, error: 'Erro ao enviar e-mail. Tente novamente.' })
+    }
+
+    res.json({ success: true, message: 'Se o e-mail estiver cadastrado, você receberá um link para redefinir sua senha.' })
+  } catch (error) {
+    console.error('Erro ao enviar redefinição de senha:', error)
+    res.status(500).json({ success: false, error: 'Erro ao processar solicitação' })
+  }
+}
+
+// Redefinir senha (via link no e-mail)
+exports.resetPassword = async (req, res) => {
+  const { token, redirect } = req.query
+  const { password } = req.body
+
+  const frontendUrl = getFrontendUrl()
+  const redirectBase = redirect || `${frontendUrl}/resetar-senha.html`
+
+  if (!password || password.length < 6) {
+    const separator = redirectBase.includes('?') ? '&' : '?'
+    return res.redirect(`${redirectBase}${separator}status=invalid&message=A+senha+deve+ter+pelo+menos+6+caracteres`)
+  }
+
+  try {
+    if (!token) {
+      return res.status(400).json({ success: false, error: 'Token não fornecido' })
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET)
+
+    const { error } = await supabase.auth.admin.updateUserById(decoded.userId, {
+      password: password
+    })
+
+    if (error) throw error
+
+    const separator = redirectBase.includes('?') ? '&' : '?'
+    return res.redirect(`${redirectBase}${separator}status=success`)
+  } catch (error) {
+    const separator = redirectBase.includes('?') ? '&' : '?'
+    if (error.name === 'TokenExpiredError') {
+      return res.redirect(`${redirectBase}${separator}status=expired`)
+    }
+    if (error.name === 'JsonWebTokenError') {
+      return res.redirect(`${redirectBase}${separator}status=invalid`)
+    }
+    return res.redirect(`${redirectBase}${separator}status=error`)
+  }
 }
 

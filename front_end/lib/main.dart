@@ -14,6 +14,7 @@ import 'screens/calendar_screen.dart';
 import 'screens/Appointments_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/forgot_password_screen.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
 import 'services/onesignal_service.dart';
@@ -93,6 +94,7 @@ class MyApp extends StatelessWidget {
             routes: {
               '/login': (_) => const LoginScreen(),
               '/signup': (_) => const SignupScreen(),
+              '/forgot-password': (_) => const ForgotPasswordScreen(),
               '/home': (_) => const MainScreen(),
             },
           );

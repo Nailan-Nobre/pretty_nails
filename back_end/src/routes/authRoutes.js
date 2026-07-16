@@ -13,7 +13,10 @@ const {
   savePlayerId,
   changeEmail,
   changePassword,
-  deleteAccount
+  deleteAccount,
+  sendSupportMessage,
+  forgotPassword,
+  resetPassword
 } = require('../controllers/authController');
 const uploadController = require('../controllers/uploadController');
 const { authenticate } = require('../middlewares/authMiddleware');
@@ -24,6 +27,9 @@ router.get('/confirm', confirmEmail);
 router.post('/resend-confirmation', resendConfirmation);
 router.post('/login', login);
 router.post('/refresh', refreshToken);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
+router.get('/reset-password', resetPassword);
 router.get('/usuario/:id', getUserById);
 router.get('/manicure/:slug', getManicureBySlug);
 
@@ -35,5 +41,6 @@ router.post('/player-id', authenticate, savePlayerId);
 router.post('/change-email', authenticate, changeEmail);
 router.post('/change-password', authenticate, changePassword);
 router.post('/delete-account', authenticate, deleteAccount);
+router.post('/support', authenticate, sendSupportMessage);
 
 module.exports = router;

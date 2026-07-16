@@ -7,6 +7,8 @@ import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../services/onesignal_service.dart';
 import '../services/api_service.dart';
+import 'terms_screen.dart';
+import 'help_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -187,14 +189,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: 'Central de Ajuda',
                   subtitle: 'Tire suas dúvidas',
                   colors: colors,
-                  onTap: () => _showSnackbar('Central de ajuda'),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpScreen())),
                 ),
                 _buildActionTile(
                   icon: Icons.description_outlined,
                   title: 'Termos de Uso',
                   subtitle: 'Política de Privacidade',
                   colors: colors,
-                  onTap: () => _showSnackbar('Termos de uso'),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsScreen())),
                 ),
               ],
             ),

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redefinir senha</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #fff5f5, #ffe8ec);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: #fff;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .logo {
+      width: 70px;
+      height: 70px;
+      margin: 0 auto 20px;
+      border-radius: 16px;
+      object-fit: cover;
+    }
+
+    h1 {
+      font-size: 22px;
+      color: #292f36;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #6c757d;
+      margin-bottom: 28px;
+    }
+
+    .form-group {
+      text-align: left;
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #292f36;
+      margin-bottom: 6px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid #dee2e6;
+      border-radius: 10px;
+      font-size: 14px;
+      color: #292f36;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus {
+      border-color: #ff6b6b;
+    }
+
+    .form-group input.error {
+      border-color: #dc3545;
+    }
+
+    .error-text {
+      font-size: 12px;
+      color: #dc3545;
+      margin-top: 4px;
+      display: none;
+    }
+
+    .error-text.visible {
+      display: block;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background: #ff6b6b;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 8px;
+    }
+
+    .btn:hover {
+      background: #e05555;
+    }
+
+    .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #ff6b6b;
+      margin-top: 12px;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 107, 107, 0.08);
+    }
+
+    .success-view {
+      display: none;
+    }
+
+    .success-view .icon {
+      font-size: 56px;
+      color: #28a745;
+      margin-bottom: 16px;
+    }
+
+    .success-view h1 {
+      margin-bottom: 8px;
+    }
+
+    .error-view {
+      display: none;
+    }
+
+    .error-view .icon {
+      font-size: 56px;
+      color: #dc3545;
+      margin-bottom: 16px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2.5px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 28px 20px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Formulário -->
+    <div id="form-view">
+      <img src="assets/icon/Icon.png" alt="Pretty Nails" class="logo" />
+      <h1>Redefinir senha</h1>
+      <p class="subtitle">Informe sua nova senha abaixo.</p>
+      <form id="reset-form" onsubmit="return false;">
+        <div class="form-group">
+          <label for="password">Nova senha</label>
+          <input type="password" id="password" placeholder="Mínimo 6 caracteres" minlength="6" required />
+          <p class="error-text" id="password-error"></p>
+        </div>
+        <div class="form-group">
+          <label for="confirm-password">Confirmar nova senha</label>
+          <input type="password" id="confirm-password" placeholder="Repita a senha" minlength="6" required />
+          <p class="error-text" id="confirm-error"></p>
+        </div>
+        <button type="submit" class="btn" id="submit-btn" onclick="handleSubmit()">Redefinir senha</button>
+      </form>
+      <a class="btn btn-secondary" href="javascript:history.back()">Voltar</a>
+    </div>
+
+    <!-- Sucesso -->
+    <div class="success-view" id="success-view">
+      <div class="icon"><i class="fa-solid fa-circle-check"></i></div>
+      <h1>Senha redefinida!</h1>
+      <p class="subtitle">Sua senha foi alterada com sucesso. Agora faça login com a nova senha.</p>
+      <a class="btn" href="/">Ir para o login</a>
+    </div>
+
+    <!-- Erro -->
+    <div class="error-view" id="error-view">
+      <div class="icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <h1 id="error-title">Link expirado</h1>
+      <p class="subtitle" id="error-message">O link de redefinição expirou. Solicite um novo link.</p>
+      <a class="btn btn-secondary" href="/">Voltar para o login</a>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const status = params.get('status');
+
+    // Se veio com status (redirect do backend), mostrar tela correspondente
+    if (status === 'success') {
+      document.getElementById('form-view').style.display = 'none';
+      document.getElementById('success-view').style.display = 'block';
+    } else if (status === 'expired') {
+      document.getElementById('form-view').style.display = 'none';
+      document.getElementById('error-title').textContent = 'Link expirado';
+      document.getElementById('error-message').textContent = 'O link de redefinição expirou. Solicite um novo link pelo app.';
+      document.getElementById('error-view').style.display = 'block';
+    } else if (status === 'invalid') {
+      document.getElementById('form-view').style.display = 'none';
+      document.getElementById('error-title').textContent = 'Link inválido';
+      document.getElementById('error-message').textContent = params.get('message') || 'O link de redefinição é inválido.';
+      document.getElementById('error-view').style.display = 'block';
+    } else if (status === 'error') {
+      document.getElementById('form-view').style.display = 'none';
+      document.getElementById('error-title').textContent = 'Erro ao redefinir';
+      document.getElementById('error-message').textContent = 'Ocorreu um erro ao redefinir sua senha. Tente novamente.';
+      document.getElementById('error-view').style.display = 'block';
+    } else if (!token) {
+      document.getElementById('form-view').style.display = 'none';
+      document.getElementById('error-title').textContent = 'Link inválido';
+      document.getElementById('error-message').textContent = 'Nenhum token de redefinição encontrado. Acesse o link pelo e-mail enviado.';
+      document.getElementById('error-view').style.display = 'block';
+    }
+
+    function showError(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+
+    function clearErrors() {
+      document.querySelectorAll('.error-text').forEach(el => el.classList.remove('visible'));
+      document.querySelectorAll('input').forEach(el => el.classList.remove('error'));
+    }
+
+    async function handleSubmit() {
+      clearErrors();
+      const password = document.getElementById('password').value;
+      const confirm = document.getElementById('confirm-password').value;
+      let valid = true;
+
+      if (!password || password.length < 6) {
+        showError('password-error', 'A senha deve ter pelo menos 6 caracteres');
+        document.getElementById('password').classList.add('error');
+        valid = false;
+      }
+
+      if (password !== confirm) {
+        showError('confirm-error', 'As senhas não coincidem');
+        document.getElementById('confirm-password').classList.add('error');
+        valid = false;
+      }
+
+      if (!valid) return;
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>';
+
+      try {
+        const backendUrl = 'https://pretty-nails-do11.vercel.app';
+        const redirect = window.location.origin + '/resetar-senha.html';
+        const response = await fetch(`${backendUrl}/auth/reset-password?token=${token}&redirect=${encodeURIComponent(redirect)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password }),
+          redirect: 'follow'
+        });
+
+        // O backend redireciona com status, então pegamos a URL final
+        const finalUrl = response.url || response.redirectedTo || window.location.href;
+        const finalParams = new URLSearchParams(finalUrl.split('?')[1] || '');
+        const finalStatus = finalParams.get('status');
+
+        if (finalStatus === 'success') {
+          document.getElementById('form-view').style.display = 'none';
+          document.getElementById('success-view').style.display = 'block';
+        } else {
+          throw new Error('Failed');
+        }
+      } catch (e) {
+        // Se o fetch seguiu o redirect, a página já foi redirecionada
+        // Se não, mostrar erro
+        try {
+          const finalStatus = new URLSearchParams(window.location.search).get('status');
+          if (finalStatus === 'success') {
+            document.getElementById('form-view').style.display = 'none';
+            document.getElementById('success-view').style.display = 'block';
+          } else {
+            throw new Error('Failed');
+          }
+        } catch {
+          btn.disabled = false;
+          btn.textContent = 'Redefinir senha';
+          showError('password-error', 'Erro ao redefinir senha. Tente novamente.');
+        }
+      }
+    }
+  </script>
+</body>
+
+</html>
