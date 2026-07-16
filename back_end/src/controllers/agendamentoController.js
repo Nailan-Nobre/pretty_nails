@@ -169,9 +169,13 @@ exports.criarAgendamento = async (req, res) => {
             });
         }
 
-        // Usar o datetime como string raw (sem converter para UTC)
+        // Usar o datetime como string raw com timezone offset
         // para manter o horário local do usuário
-        const dataHoraStr = dataHora.includes('T') ? dataHora : dataAgendamento.toISOString().replace('Z', '').split('.')[0];
+        let dataHoraStr = dataHora;
+        // Se não tem offset de timezone, adicionar -03:00 (Brasil)
+        if (!dataHora.includes('+') && !dataHora.endsWith('Z') && !(dataHora.length > 19 && dataHora[19] === '-')) {
+            dataHoraStr = dataHora + '-03:00';
+        }
 
         // Verifica conflitos de horário
         const { data: conflito, error: conflitoError } = await supabase
