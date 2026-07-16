@@ -732,22 +732,44 @@ exports.forgotPassword = async (req, res) => {
   }
 }
 
-// Redefinir senha (via link no e-mail)
-exports.resetPassword = async (req, res) => {
+// Redefinir senha - página (GET do link no e-mail)
+exports.resetPasswordPage = async (req, res) => {
   const { token, redirect } = req.query
-  const { password } = req.body
-
   const frontendUrl = getFrontendUrl()
   const redirectBase = redirect || `${frontendUrl}/resetar-senha.html`
 
-  if (!password || password.length < 6) {
+  if (!token) {
     const separator = redirectBase.includes('?') ? '&' : '?'
-    return res.redirect(`${redirectBase}${separator}status=invalid&message=A+senha+deve+ter+pelo+menos+6+caracteres`)
+    return res.redirect(`${redirectBase}${separator}status=invalid`)
   }
+
+  // Verificar se o token é válido antes de redirecionar
+  try {
+    jwt.verify(token, JWT_SECRET)
+    // Token válido — redirecionar para a página com o token na URL
+    const separator = redirectBase.includes('?') ? '&' : '?'
+    return res.redirect(`${redirectBase}${separator}token=${token}`)
+  } catch (error) {
+    const separator = redirectBase.includes('?') ? '&' : '?'
+    if (error.name === 'TokenExpiredError') {
+      return res.redirect(`${redirectBase}${separator}status=expired`)
+    }
+    return res.redirect(`${redirectBase}${separator}status=invalid`)
+  }
+}
+
+// Redefinir senha - processar nova senha (POST)
+exports.resetPassword = async (req, res) => {
+  const { token } = req.query
+  const { password } = req.body
 
   try {
     if (!token) {
       return res.status(400).json({ success: false, error: 'Token não fornecido' })
+    }
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({ success: false, error: 'A senha deve ter pelo menos 6 caracteres' })
     }
 
     const decoded = jwt.verify(token, JWT_SECRET)
@@ -758,17 +780,15 @@ exports.resetPassword = async (req, res) => {
 
     if (error) throw error
 
-    const separator = redirectBase.includes('?') ? '&' : '?'
-    return res.redirect(`${redirectBase}${separator}status=success`)
+    res.json({ success: true, message: 'Senha redefinida com sucesso!' })
   } catch (error) {
-    const separator = redirectBase.includes('?') ? '&' : '?'
     if (error.name === 'TokenExpiredError') {
-      return res.redirect(`${redirectBase}${separator}status=expired`)
+      return res.status(400).json({ success: false, error: 'Link expirado. Solicite um novo link.' })
     }
     if (error.name === 'JsonWebTokenError') {
-      return res.redirect(`${redirectBase}${separator}status=invalid`)
+      return res.status(400).json({ success: false, error: 'Link inválido.' })
     }
-    return res.redirect(`${redirectBase}${separator}status=error`)
+    res.status(500).json({ success: false, error: 'Erro ao redefinir senha.' })
   }
 }
 

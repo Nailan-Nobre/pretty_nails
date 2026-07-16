@@ -77,11 +77,12 @@ class AgendamentoService {
     final estatisticas = response['estatisticas'] ?? {};
     final concluidos = estatisticas['totalConcluidos'] ?? 0;
     final cancelados = estatisticas['totalCancelados'] ?? 0;
+    final expirados = estatisticas['totalExpirados'] ?? 0;
     final result = {
-      'total': concluidos + cancelados,
-      'pendentes': 0,
-      'confirmados': 0,
+      'total': concluidos + cancelados + expirados,
       'concluidos': concluidos,
+      'cancelados': cancelados,
+      'expirados': expirados,
     };
     await CacheService.saveEstatisticas(result);
     return result;
@@ -93,10 +94,11 @@ class AgendamentoService {
     final labels = historico['labels'] ?? [];
     final dadosConcluidos = historico['dadosConcluidos'] ?? [];
     final dadosCancelados = historico['dadosCancelados'] ?? [];
+    final dadosExpirados = historico['dadosExpirados'] ?? [];
 
     final meses = <String, int>{};
     for (int i = 0; i < labels.length; i++) {
-      final total = (dadosConcluidos[i] ?? 0) + (dadosCancelados[i] ?? 0);
+      final total = (dadosConcluidos[i] ?? 0) + (dadosCancelados[i] ?? 0) + (dadosExpirados[i] ?? 0);
       meses['${i + 1}'] = total;
     }
 
@@ -106,6 +108,7 @@ class AgendamentoService {
       'labels': labels,
       'dadosConcluidos': dadosConcluidos,
       'dadosCancelados': dadosCancelados,
+      'dadosExpirados': dadosExpirados,
     };
   }
 }

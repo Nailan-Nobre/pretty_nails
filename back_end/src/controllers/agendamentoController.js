@@ -338,7 +338,6 @@ exports.obterEstatisticasAgendamentos = async (req, res) => {
         const estatisticasPorMes = {};
         const mesesLabels = [];
 
-        // Inicializar os últimos 5 meses com 0
         for (let i = 4; i >= 0; i--) {
             const data = new Date();
             data.setMonth(data.getMonth() - i);
@@ -347,37 +346,30 @@ exports.obterEstatisticasAgendamentos = async (req, res) => {
 
             estatisticasPorMes[mesAno] = {
                 concluidos: 0,
-                cancelados: 0
+                cancelados: 0,
+                expirados: 0
             };
             mesesLabels.push(mesLabel);
         }
 
-        console.log('Meses inicializados:', Object.keys(estatisticasPorMes));
-
-        // Contar agendamentos por mês
         agendamentos.forEach(agendamento => {
             const data = new Date(agendamento.data_hora);
             const mesAno = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
 
-            console.log(`Processando agendamento: ${agendamento.id}, data: ${data.toISOString()}, mesAno: ${mesAno}, status: ${agendamento.status}`);
-
             if (estatisticasPorMes.hasOwnProperty(mesAno)) {
                 if (agendamento.status === 'concluido') {
                     estatisticasPorMes[mesAno].concluidos++;
-                } else if (agendamento.status === 'cancelado' || agendamento.status === 'recusado' || agendamento.status === 'expirado') {
+                } else if (agendamento.status === 'expirado') {
+                    estatisticasPorMes[mesAno].expirados++;
+                } else if (agendamento.status === 'cancelado' || agendamento.status === 'recusado') {
                     estatisticasPorMes[mesAno].cancelados++;
                 }
             }
         });
 
-        console.log('Estatísticas finais por mês:', estatisticasPorMes);
-
-        // Converter para arrays de valores
         const dadosConcluidos = Object.values(estatisticasPorMes).map(mes => mes.concluidos);
         const dadosCancelados = Object.values(estatisticasPorMes).map(mes => mes.cancelados);
-
-        console.log('Dados concluídos:', dadosConcluidos);
-        console.log('Dados cancelados:', dadosCancelados);
+        const dadosExpirados = Object.values(estatisticasPorMes).map(mes => mes.expirados);
 
         const resultado = {
             success: true,
@@ -385,8 +377,10 @@ exports.obterEstatisticasAgendamentos = async (req, res) => {
                 labels: mesesLabels,
                 dadosConcluidos: dadosConcluidos,
                 dadosCancelados: dadosCancelados,
+                dadosExpirados: dadosExpirados,
                 totalConcluidos: dadosConcluidos.reduce((sum, val) => sum + val, 0),
-                totalCancelados: dadosCancelados.reduce((sum, val) => sum + val, 0)
+                totalCancelados: dadosCancelados.reduce((sum, val) => sum + val, 0),
+                totalExpirados: dadosExpirados.reduce((sum, val) => sum + val, 0)
             }
         };
 
@@ -453,12 +447,12 @@ exports.obterHistoricoEstatisticas = async (req, res) => {
             
             estatisticasPorMes[mesAno] = {
                 concluidos: 0,
-                cancelados: 0
+                cancelados: 0,
+                expirados: 0
             };
             mesesLabels.push(mesLabel);
         }
 
-        // Contar agendamentos por mês
         agendamentos.forEach(agendamento => {
             const data = new Date(agendamento.data_hora);
             const mesAno = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
@@ -466,15 +460,17 @@ exports.obterHistoricoEstatisticas = async (req, res) => {
             if (estatisticasPorMes.hasOwnProperty(mesAno)) {
                 if (agendamento.status === 'concluido') {
                     estatisticasPorMes[mesAno].concluidos++;
-                } else if (agendamento.status === 'cancelado' || agendamento.status === 'recusado' || agendamento.status === 'expirado') {
+                } else if (agendamento.status === 'expirado') {
+                    estatisticasPorMes[mesAno].expirados++;
+                } else if (agendamento.status === 'cancelado' || agendamento.status === 'recusado') {
                     estatisticasPorMes[mesAno].cancelados++;
                 }
             }
         });
 
-        // Converter para arrays de valores
         const dadosConcluidos = Object.values(estatisticasPorMes).map(mes => mes.concluidos);
         const dadosCancelados = Object.values(estatisticasPorMes).map(mes => mes.cancelados);
+        const dadosExpirados = Object.values(estatisticasPorMes).map(mes => mes.expirados);
 
         // Obter anos disponíveis (anos que têm agendamentos)
         const { data: anosDisponiveis, error: anosError } = await supabase
@@ -498,8 +494,10 @@ exports.obterHistoricoEstatisticas = async (req, res) => {
                 labels: mesesLabels,
                 dadosConcluidos: dadosConcluidos,
                 dadosCancelados: dadosCancelados,
+                dadosExpirados: dadosExpirados,
                 totalConcluidos: dadosConcluidos.reduce((sum, val) => sum + val, 0),
                 totalCancelados: dadosCancelados.reduce((sum, val) => sum + val, 0),
+                totalExpirados: dadosExpirados.reduce((sum, val) => sum + val, 0),
                 anosDisponiveis: anos
             }
         };

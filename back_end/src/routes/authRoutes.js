@@ -16,7 +16,8 @@ const {
   deleteAccount,
   sendSupportMessage,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  resetPasswordPage
 } = require('../controllers/authController');
 const uploadController = require('../controllers/uploadController');
 const { authenticate } = require('../middlewares/authMiddleware');
@@ -28,8 +29,8 @@ router.post('/resend-confirmation', resendConfirmation);
 router.post('/login', login);
 router.post('/refresh', refreshToken);
 router.post('/forgot-password', forgotPassword);
+router.get('/reset-password', resetPasswordPage);
 router.post('/reset-password', resetPassword);
-router.get('/reset-password', resetPassword);
 router.get('/usuario/:id', getUserById);
 router.get('/manicure/:slug', getManicureBySlug);
 

@@ -114,10 +114,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStatisticsCard(BuildContext context, AppColors colors) {
-    final total = _estatisticas['total'] ?? 0;
-    final pendentes = _estatisticas['pendentes'] ?? 0;
-    final confirmados = _estatisticas['confirmados'] ?? 0;
-    final concluidos = _estatisticas['concluidos'] ?? 0;
+    final total = (_estatisticas['total'] ?? 0) as int;
+    final concluidos = (_estatisticas['concluidos'] ?? 0) as int;
+    final cancelados = (_estatisticas['cancelados'] ?? 0) as int;
+    final expirados = (_estatisticas['expirados'] ?? 0) as int;
+
+    final items = [
+      _StatBar(label: 'Concluídos', count: concluidos, color: colors.success),
+      _StatBar(label: 'Cancelados', count: cancelados, color: colors.danger),
+      _StatBar(label: 'Expirados', count: expirados, color: colors.warning),
+    ];
 
     return Card(
       elevation: 4,
@@ -130,29 +136,35 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Row(
               children: [
-                const Text('📊', style: TextStyle(fontSize: 24)),
-                const SizedBox(width: 8),
-                Text(
-                  'Estatísticas da manicure',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: colors.textPrimary,
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.bar_chart, color: colors.primary, size: 20),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Estatísticas',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary),
+                      ),
+                      Text(
+                        '$total agendamento${total == 1 ? '' : 's'} no total',
+                        style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatItem('Total', '$total', colors),
-                _buildStatItem('Pendentes', '$pendentes', colors),
-                _buildStatItem('Confirmados', '$confirmados', colors),
-                _buildStatItem('Concluídos', '$concluidos', colors),
-              ],
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
+            ...items.map((item) => _buildStatBar(item, total, colors)),
+            const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -179,15 +191,52 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatItem(String label, String value, AppColors colors) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colors.primary),
-        ),
-        Text(label, style: TextStyle(fontSize: 11, color: colors.textSecondary)),
-      ],
+  Widget _buildStatBar(_StatBar item, int total, AppColors colors) {
+    final ratio = total > 0 ? item.count / total : 0.0;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: item.color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  item.label,
+                  style: TextStyle(fontSize: 13, color: colors.textPrimary),
+                ),
+              ),
+              Text(
+                '${item.count}',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: colors.textPrimary),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '(${(ratio * 100).round()}%)',
+                style: TextStyle(fontSize: 11, color: colors.textSecondary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: ratio,
+              minHeight: 8,
+              backgroundColor: colors.bgTertiary,
+              valueColor: AlwaysStoppedAnimation<Color>(item.color),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -621,6 +670,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+class _StatBar {
+  final String label;
+  final int count;
+  final Color color;
+  const _StatBar({required this.label, required this.count, required this.color});
+}
+
 class _HistoricoModal extends StatefulWidget {
   final AppColors colors;
   const _HistoricoModal({required this.colors});
@@ -894,53 +950,101 @@ class _HistoricoModalState extends State<_HistoricoModal> {
     final now = DateTime.now();
     final maxMonth = _currentYear == now.year ? now.month : 12;
 
+    int maxCount = 0;
+    for (int m = 1; m <= 12; m++) {
+      final v = (months['$m'] ?? 0) as int;
+      if (v > maxCount) maxCount = v;
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Agendamentos por mês',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.textSecondary),
+          Row(
+            children: [
+              Text(
+                'Agendamentos por mês',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.textSecondary),
+              ),
+              const Spacer(),
+              if (maxCount > 0)
+                Text(
+                  'Máx: $maxCount',
+                  style: TextStyle(fontSize: 11, color: colors.textSecondary),
+                ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: List.generate(maxMonth, (i) {
-                final m = i + 1;
-                final count = months['$m'] ?? 0;
-                final maxCount = months.values.fold<int>(0, (max, v) => (v as int) > max ? v : max);
-                final ratio = maxCount > 0 ? count / maxCount : 0.0;
-                final barHeight = ratio * 160;
+            child: maxCount == 0
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.bar_chart, size: 40, color: colors.textSecondary.withValues(alpha: 0.3)),
+                        const SizedBox(height: 8),
+                        Text('Nenhum agendamento neste ano', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+                      ],
+                    ),
+                  )
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: List.generate(maxMonth, (i) {
+                          final m = i + 1;
+                          final count = (months['$m'] ?? 0) as int;
+                          final ratio = maxCount > 0 ? count / maxCount : 0.0;
+                          final barHeight = ratio * (constraints.maxHeight - 40);
 
-                return Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        '$count',
-                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: colors.textSecondary),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        height: barHeight > 4 ? barHeight : 4,
-                        margin: const EdgeInsets.symmetric(horizontal: 2),
-                        decoration: BoxDecoration(
-                          color: colors.primary,
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _getMonthName(m).substring(0, 3),
-                        style: TextStyle(fontSize: 10, color: colors.textSecondary),
-                      ),
-                    ],
+                          return Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 2),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  if (count > 0)
+                                    Text(
+                                      '$count',
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: colors.textPrimary),
+                                    )
+                                  else
+                                    const SizedBox(height: 14),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    height: barHeight.clamp(2.0, constraints.maxHeight - 40),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          colors.primary,
+                                          colors.primary.withValues(alpha: 0.6),
+                                        ],
+                                      ),
+                                      borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    _getMonthName(m).substring(0, 3),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                      color: m == now.month && _currentYear == now.year
+                                          ? colors.primary
+                                          : colors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
+                      );
+                    },
                   ),
-                );
-              }),
-            ),
           ),
         ],
       ),

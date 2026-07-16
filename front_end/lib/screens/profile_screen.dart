@@ -7,6 +7,7 @@ import '../models/manicure.dart';
 import '../services/auth_service.dart';
 import 'settings_screen.dart';
 import 'edit_profile_screen.dart';
+import 'statistics_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -705,7 +706,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       title: 'Estatísticas',
                       subtitle: 'Análise completa do seu negócio',
                       colors: colors,
-                      onTap: () => Navigator.pop(context),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const StatisticsScreen()),
+                        );
+                      },
                     ),
                     _buildMenuItem(
                       icon: Icons.settings_outlined,

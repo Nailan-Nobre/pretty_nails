@@ -284,41 +284,26 @@
 
       try {
         const backendUrl = 'https://pretty-nails-do11.vercel.app';
-        const redirect = window.location.origin + '/resetar-senha.html';
-        const response = await fetch(`${backendUrl}/auth/reset-password?token=${token}&redirect=${encodeURIComponent(redirect)}`, {
+        const response = await fetch(`${backendUrl}/auth/reset-password?token=${token}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password }),
-          redirect: 'follow'
+          body: JSON.stringify({ password })
         });
 
-        // O backend redireciona com status, então pegamos a URL final
-        const finalUrl = response.url || response.redirectedTo || window.location.href;
-        const finalParams = new URLSearchParams(finalUrl.split('?')[1] || '');
-        const finalStatus = finalParams.get('status');
+        const data = await response.json();
 
-        if (finalStatus === 'success') {
+        if (data.success) {
           document.getElementById('form-view').style.display = 'none';
           document.getElementById('success-view').style.display = 'block';
         } else {
-          throw new Error('Failed');
-        }
-      } catch (e) {
-        // Se o fetch seguiu o redirect, a página já foi redirecionada
-        // Se não, mostrar erro
-        try {
-          const finalStatus = new URLSearchParams(window.location.search).get('status');
-          if (finalStatus === 'success') {
-            document.getElementById('form-view').style.display = 'none';
-            document.getElementById('success-view').style.display = 'block';
-          } else {
-            throw new Error('Failed');
-          }
-        } catch {
           btn.disabled = false;
           btn.textContent = 'Redefinir senha';
-          showError('password-error', 'Erro ao redefinir senha. Tente novamente.');
+          showError('password-error', data.error || 'Erro ao redefinir senha. Tente novamente.');
         }
+      } catch (e) {
+        btn.disabled = false;
+        btn.textContent = 'Redefinir senha';
+        showError('password-error', 'Erro ao conectar com o servidor. Tente novamente.');
       }
     }
   </script>
