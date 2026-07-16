@@ -768,20 +768,6 @@ exports.atualizarStatusAgendamento = async (req, res) => {
                 statusSubjectMap[status] || 'Atualização de agendamento - Pretty Nails',
                 emailStatusHtml
             );
-
-            const statusLabelMap = {
-                confirmado: 'confirmado',
-                cancelado: 'cancelado',
-                concluido: 'concluído',
-                recusado: 'recusado',
-                expirado: 'expirado',
-            };
-            sendPushToManicure(
-                manicureId,
-                `Agendamento ${statusLabelMap[status]}`,
-                `Agendamento com ${agendamento.cliente_nome} foi ${statusLabelMap[status]}`,
-                { type: 'status_agendamento', agendamento_id: id, status }
-            ).catch(() => {});
         }
 
         res.json({
