@@ -169,12 +169,16 @@ exports.criarAgendamento = async (req, res) => {
             });
         }
 
+        // Usar o datetime como string raw (sem converter para UTC)
+        // para manter o horário local do usuário
+        const dataHoraStr = dataHora.includes('T') ? dataHora : dataAgendamento.toISOString().replace('Z', '').split('.')[0];
+
         // Verifica conflitos de horário
         const { data: conflito, error: conflitoError } = await supabase
             .from('agendamentos')
             .select('id')
             .eq('manicure_id', manicure.id)
-            .eq('data_hora', dataAgendamento.toISOString())
+            .eq('data_hora', dataHoraStr)
             .not('status', 'eq', 'cancelado')
             .single();
 
@@ -226,7 +230,7 @@ exports.criarAgendamento = async (req, res) => {
                 cliente_email: clienteEmail,
                 cliente_cpf: clienteCpf,
                 cliente_telefone: clienteTelefone || null,
-                data_hora: dataAgendamento.toISOString(),
+                data_hora: dataHoraStr,
                 servico,
                 observacoes,
                 imagem_referencia: imagemReferenciaUrl,

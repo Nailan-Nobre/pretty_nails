@@ -96,6 +96,15 @@ class Agendamento {
   });
 
   factory Agendamento.fromJson(Map<String, dynamic> json) {
+    DateTime parseDataHora(String raw) {
+      // Se termina com Z ou offset, é UTC — converter para local
+      if (raw.endsWith('Z') || raw.contains('+') || (raw.length > 19 && raw[19] == '-')) {
+        return DateTime.parse(raw).toLocal();
+      }
+      // Se é "YYYY-MM-DDTHH:MM:SS" sem timezone, tratar como local
+      return DateTime.parse(raw);
+    }
+
     return Agendamento(
       id: json['id'] ?? '',
       manicureId: json['manicure_id'] ?? '',
@@ -103,7 +112,7 @@ class Agendamento {
       clienteEmail: json['cliente_email'],
       clienteCpf: json['cliente_cpf'],
       clienteTelefone: json['cliente_telefone'],
-      dataHora: DateTime.parse(json['data_hora']),
+      dataHora: parseDataHora(json['data_hora']),
       servico: json['servico'] ?? '',
       observacoes: json['observacoes'],
       imagemReferencia: json['imagem_referencia'],

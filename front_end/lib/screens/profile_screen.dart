@@ -85,11 +85,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           CustomScrollView(
+            physics: const BouncingScrollPhysics(),
             slivers: [
               SliverAppBar(
                 expandedHeight: 320,
-                pinned: false,
-                floating: true,
+                pinned: true,
+                floating: false,
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 leading: IconButton(
@@ -260,6 +261,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildBioCard(colors),
                   _buildStatsCard(colors),
                   _buildWorkDaysCard(colors),
+                  _buildExceptionsCard(colors),
+                  _buildRulesCard(colors),
                   _buildWorkHoursCard(colors),
                   _buildServicesCard(colors),
                   const SizedBox(height: 24),
@@ -436,6 +439,173 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               );
             }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExceptionsCard(AppColors colors) {
+    final horariosPorDia = _manicure?.horariosPorDia ?? {};
+    final allDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    final diasTrabalho = _manicure?.diasTrabalho ?? [];
+
+    final exceptionDays = <int>[];
+    for (int i = 0; i < 7; i++) {
+      if (horariosPorDia.containsKey('$i') && horariosPorDia['$i']!.isNotEmpty) {
+        exceptionDays.add(i);
+      }
+    }
+
+    if (exceptionDays.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: colors.shadowSm, blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colors.warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.event_repeat, color: colors.warning, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Exceções de Horário',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.primary),
+                    ),
+                    Text(
+                      'Dias com horários diferentes do padrão',
+                      style: TextStyle(fontSize: 11, color: colors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: List.generate(allDays.length, (index) {
+              final hasException = exceptionDays.contains(index);
+              final isWorkDay = diasTrabalho.contains(index);
+              final horarios = horariosPorDia['$index'] ?? [];
+              final horarioStr = horarios.map((h) => '${h['inicio']}-${h['fim']}').join(', ');
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: hasException
+                      ? colors.warning.withValues(alpha: 0.12)
+                      : colors.bgTertiary,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: hasException
+                        ? colors.warning.withValues(alpha: 0.5)
+                        : colors.borderColor,
+                    width: 1.5,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          hasException ? Icons.edit_calendar : (isWorkDay ? Icons.check_circle : Icons.cancel),
+                          size: 14,
+                          color: hasException ? colors.warning : colors.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          allDays[index],
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 13,
+                            color: hasException ? colors.warning : colors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (hasException && horarioStr.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        horarioStr,
+                        style: TextStyle(fontSize: 10, color: colors.textSecondary),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRulesCard(AppColors colors) {
+    final regras = _manicure?.regras ?? '';
+    if (regras.trim().isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: colors.shadowSm, blurRadius: 12, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colors.info.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.gavel, color: colors.info, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Regras',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.primary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colors.bgTertiary,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: colors.borderColor),
+            ),
+            child: Text(
+              regras,
+              style: TextStyle(fontSize: 13, color: colors.textPrimary, height: 1.5),
+            ),
           ),
         ],
       ),

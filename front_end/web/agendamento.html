@@ -143,6 +143,12 @@
       border: 1.5px solid var(--border);
     }
 
+    .day-badge.exception {
+      background: rgba(255, 193, 7, 0.15);
+      color: #F59E0B;
+      border: 1.5px solid #F59E0B;
+    }
+
     .hours-list {
       display: flex;
       flex-wrap: wrap;
@@ -542,6 +548,34 @@
         ? `<div class="hours-list">${horarios.map(h => `<span class="hour-badge">${h.inicio} às ${h.fim}</span>`).join('')}</div>`
         : `<div class="empty-state">Nenhum horário configurado</div>`;
 
+      const horariosPorDia = m.horarios_por_dia || {};
+      const exceptionDays = [];
+      for (let i = 0; i < 7; i++) {
+        if (horariosPorDia[i] && horariosPorDia[i].length > 0) {
+          exceptionDays.push(i);
+        }
+      }
+
+      const exceptionsHtml = exceptionDays.length > 0
+        ? `<div class="days-grid">${allDays.map((day, i) => {
+            const isException = exceptionDays.includes(i);
+            const horarios = horariosPorDia[i] || [];
+            const horarioStr = horarios.map(h => `${h.inicio}-${h.fim}`).join(', ');
+            return `<span class="day-badge ${isException ? 'exception' : ''}" ${isException ? `title="${horarioStr}"` : ''}>${day}${isException ? ' ✦' : ''}</span>`;
+          }).join('')}</div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:6px;">
+            <i class="fa-solid fa-circle-info"></i> Dias com ✦ possuem horários diferentes do padrão${exceptionDays.length > 0 ? ': ' + exceptionDays.map(i => allDays[i]).join(', ') : ''}
+          </div>`
+        : '';
+
+      const regras = m.regras || '';
+      const rulesHtml = regras.trim().length > 0
+        ? `<div class="section">
+            <div class="section-title"><i class="fa-solid fa-gavel"></i> Regras</div>
+            <div style="background:var(--bg);padding:12px;border-radius:10px;border:1px solid var(--border);font-size:13px;color:var(--text);line-height:1.6;white-space:pre-line;">${regras}</div>
+          </div>`
+        : '';
+
       const servicesOptions = servicos.map(s =>
         `<option value="${s.nome}">${s.nome}${s.preco ? ' - R$' + s.preco : ''}</option>`
       ).join('');
@@ -570,7 +604,10 @@
         <div class="section">
           <div class="section-title"><i class="fa-solid fa-calendar-days"></i> Dias de Trabalho</div>
           <div class="days-grid">${daysHtml}</div>
+          ${exceptionsHtml}
         </div>
+
+        ${rulesHtml}
 
         <div class="section">
           <div class="section-title"><i class="fa-solid fa-clock"></i> Horários de Trabalho</div>

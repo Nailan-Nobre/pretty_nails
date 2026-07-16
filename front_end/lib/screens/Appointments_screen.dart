@@ -79,7 +79,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     bool changed = false;
 
     for (final a in _confirmados) {
-      if (a.dataHora.isBefore(now)) {
+      final dataLocal = a.dataHora.toLocal();
+      final limite = dataLocal.add(const Duration(minutes: 30));
+      if (now.isAfter(limite)) {
         try {
           await AgendamentoService.atualizarStatus(a.id, AgendamentoStatus.concluido);
           changed = true;
@@ -88,7 +90,9 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
     }
 
     for (final a in _pendentes) {
-      if (a.dataHora.isBefore(now)) {
+      final dataLocal = a.dataHora.toLocal();
+      final limite = dataLocal.add(const Duration(minutes: 30));
+      if (now.isAfter(limite)) {
         try {
           await AgendamentoService.atualizarStatus(a.id, AgendamentoStatus.expirado);
           changed = true;
@@ -102,7 +106,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
   }
 
   bool _isBeforeSchedule(Agendamento appointment) {
-    return appointment.dataHora.isAfter(DateTime.now());
+    return appointment.dataHora.toLocal().isAfter(DateTime.now());
   }
 
   Color _getStatusColor(AgendamentoStatus status, AppColors colors) {
@@ -374,7 +378,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
           ],
           if ((appointment.status == AgendamentoStatus.pendente ||
               appointment.status == AgendamentoStatus.confirmado) &&
-              appointment.dataHora.isAfter(DateTime.now())) ...[
+              appointment.dataHora.toLocal().isAfter(DateTime.now())) ...[
             const SizedBox(height: 12),
             Row(
               children: [
