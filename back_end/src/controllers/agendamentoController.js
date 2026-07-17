@@ -60,7 +60,8 @@ function formatarDataAgendamento(dataHora) {
         month: 'long',
         year: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        timeZone: 'America/Sao_Paulo'
     });
 }
 
@@ -920,13 +921,14 @@ function getStatusEmailTemplate(clienteNome, manicureNome, servico, dataHora, st
                 </div>
                 <div class="detail-item">
                     <span class="detail-label">Data/Horário:</span>
-                    <span>${new Date(dataHora).toLocaleString('pt-BR', { 
-                        weekday: 'long', 
-                        day: '2-digit', 
-                        month: 'long', 
+                    <span>${new Date(dataHora).toLocaleString('pt-BR', {
+                        weekday: 'long',
+                        day: '2-digit',
+                        month: 'long',
                         year: 'numeric',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
+                        timeZone: 'America/Sao_Paulo'
                     })}</span>
                 </div>
                 ${observacoes ? `

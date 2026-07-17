@@ -49,7 +49,7 @@ module.exports = {
       <h1>Novo Agendamento Recebido</h1>
       <p>Você recebeu um novo agendamento de ${clientName}.</p>
       <p><strong>Serviço:</strong> ${service}</p>
-      <p><strong>Data/Horário:</strong> ${new Date(appointmentDate).toLocaleString('pt-BR')}</p>
+      <p><strong>Data/Horário:</strong> ${new Date(appointmentDate).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</p>
       <p>Acesse seu painel para confirmar ou recusar o agendamento.</p>
     `;
     return await sendEmail(manicureEmail, subject, html);
@@ -68,7 +68,7 @@ module.exports = {
     let html = `
       <h1>Status do Agendamento Atualizado</h1>
       <p>Seu agendamento com ${manicureName} foi ${statusMessages[status]}.</p>
-      <p><strong>Data/Horário:</strong> ${new Date(appointmentDate).toLocaleString('pt-BR')}</p>
+      <p><strong>Data/Horário:</strong> ${new Date(appointmentDate).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</p>
     `;
 
     if (status === 'concluido') {
