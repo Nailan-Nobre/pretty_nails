@@ -261,7 +261,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildBioCard(colors),
                   _buildStatsCard(colors),
                   _buildWorkDaysCard(colors),
-                  _buildExceptionsCard(colors),
                   _buildRulesCard(colors),
                   _buildWorkHoursCard(colors),
                   _buildServicesCard(colors),
@@ -367,7 +366,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildWorkDaysCard(AppColors colors) {
     final diasTrabalho = _manicure?.diasTrabalho ?? [];
+    final horariosPorDia = _manicure?.horariosPorDia ?? {};
     final allDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+    final exceptionDays = <int>[];
+    for (int i = 0; i < 7; i++) {
+      if (horariosPorDia.containsKey('$i') && horariosPorDia['$i']!.isNotEmpty) {
+        exceptionDays.add(i);
+      }
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -393,9 +400,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Icon(Icons.calendar_today, color: colors.primary, size: 18),
               ),
               const SizedBox(width: 10),
-              Text(
-                'Dias de Trabalho',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.primary),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Dias de Trabalho',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.primary),
+                    ),
+                    if (exceptionDays.isNotEmpty)
+                      Text(
+                        'Dias com cor diferente têm horários de exceção',
+                        style: TextStyle(fontSize: 11, color: colors.textSecondary),
+                      ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -406,119 +425,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: List.generate(allDays.length, (index) {
               final dayNum = index;
               final isActive = diasTrabalho.contains(dayNum);
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? colors.primary.withValues(alpha: 0.15)
-                      : colors.bgTertiary,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isActive ? colors.primary.withValues(alpha: 0.5) : colors.borderColor,
-                    width: 1.5,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      isActive ? Icons.check_circle : Icons.cancel,
-                      size: 14,
-                      color: isActive ? colors.primary : colors.textSecondary,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      allDays[index],
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 13,
-                        color: isActive ? colors.primary : colors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExceptionsCard(AppColors colors) {
-    final horariosPorDia = _manicure?.horariosPorDia ?? {};
-    final allDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    final diasTrabalho = _manicure?.diasTrabalho ?? [];
-
-    final exceptionDays = <int>[];
-    for (int i = 0; i < 7; i++) {
-      if (horariosPorDia.containsKey('$i') && horariosPorDia['$i']!.isNotEmpty) {
-        exceptionDays.add(i);
-      }
-    }
-
-    if (exceptionDays.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colors.cardBg,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: colors.shadowSm, blurRadius: 12, offset: const Offset(0, 4))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: colors.warning.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Icons.event_repeat, color: colors.warning, size: 18),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Exceções de Horário',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.primary),
-                    ),
-                    Text(
-                      'Dias com horários diferentes do padrão',
-                      style: TextStyle(fontSize: 11, color: colors.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: List.generate(allDays.length, (index) {
               final hasException = exceptionDays.contains(index);
-              final isWorkDay = diasTrabalho.contains(index);
               final horarios = horariosPorDia['$index'] ?? [];
               final horarioStr = horarios.map((h) => '${h['inicio']}-${h['fim']}').join(', ');
 
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
                   color: hasException
                       ? colors.warning.withValues(alpha: 0.12)
-                      : colors.bgTertiary,
+                      : isActive
+                          ? colors.primary.withValues(alpha: 0.15)
+                          : colors.bgTertiary,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: hasException
                         ? colors.warning.withValues(alpha: 0.5)
-                        : colors.borderColor,
+                        : isActive
+                            ? colors.primary.withValues(alpha: 0.5)
+                            : colors.borderColor,
                     width: 1.5,
                   ),
                 ),
@@ -529,9 +454,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          hasException ? Icons.edit_calendar : (isWorkDay ? Icons.check_circle : Icons.cancel),
+                          hasException
+                              ? Icons.edit_calendar
+                              : isActive
+                                  ? Icons.check_circle
+                                  : Icons.cancel,
                           size: 14,
-                          color: hasException ? colors.warning : colors.textSecondary,
+                          color: hasException
+                              ? colors.warning
+                              : isActive
+                                  ? colors.primary
+                                  : colors.textSecondary,
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -539,7 +472,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: TextStyle(
                             fontWeight: FontWeight.w500,
                             fontSize: 13,
-                            color: hasException ? colors.warning : colors.textSecondary,
+                            color: hasException
+                                ? colors.warning
+                                : isActive
+                                    ? colors.primary
+                                    : colors.textSecondary,
                           ),
                         ),
                       ],
