@@ -342,6 +342,40 @@ exports.getManicureBySlug = async (req, res) => {
   }
 }
 
+// Listar manicures por cidade (rota pública)
+exports.listarManicuresPorCidade = async (req, res) => {
+  try {
+    const { cidade } = req.query
+
+    if (!cidade || cidade.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cidade é obrigatória'
+      })
+    }
+
+    const { data: manicures, error } = await supabase
+      .from('manicures')
+      .select('id, nome, foto, cidade, estado, slug, estrelas, bio')
+      .eq('cidade', cidade.trim())
+      .eq('ativa', true)
+      .order('estrelas', { ascending: false })
+
+    if (error) throw error
+
+    res.json({
+      success: true,
+      manicures: manicures || []
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao buscar manicures',
+      details: error.message
+    })
+  }
+}
+
 // Atualizar perfil
 exports.updateProfile = async (req, res) => {
   const updates = req.body

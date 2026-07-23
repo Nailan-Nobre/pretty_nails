@@ -83,6 +83,23 @@
       color: var(--primary);
     }
 
+    .profile-stars {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      margin-top: 6px;
+      font-size: 14px;
+      color: #F59E0B;
+    }
+
+    .profile-stars .star-count {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-left: 4px;
+    }
+
     .profile-location {
       font-size: 13px;
       color: var(--text-secondary);
@@ -596,6 +613,7 @@
         <div class="profile-card">
           ${photoHtml}
           <div class="profile-name">${m.nome || ''}</div>
+          ${m.estrelas != null ? `<div class="profile-stars"><i class="fa-solid fa-star"></i> <span class="star-count">${Number(m.estrelas).toFixed(1)}</span></div>` : ''}
           <div class="profile-location"><i class="fa-solid fa-location-dot"></i> ${m.cidade || ''}${m.estado ? ', ' + m.estado : ''}</div>
           ${m.bio ? `<div class="profile-bio">${m.bio}</div>` : ''}
           ${openBadge}
@@ -748,7 +766,7 @@
       return slots;
     }
 
-    function updateTimeSlots() {
+    async function updateTimeSlots() {
       const dateInput = document.getElementById('dataDia');
       const slotSelect = document.getElementById('horarioSelect');
       if (!dateInput.value) {
@@ -773,9 +791,21 @@
       const isToday = dateInput.value === today.toISOString().slice(0, 10);
       const nowMinutes = today.getHours() * 60 + today.getMinutes();
 
-      const availableSlots = isToday
+      let availableSlots = isToday
         ? allSlots.filter(slot => timeToMinutes(slot) > nowMinutes)
         : allSlots;
+
+      // Buscar horários já agendados
+      try {
+        slotSelect.innerHTML = '<option value="">Carregando horários...</option>';
+        const response = await fetch(`${API_BASE}/api/agendamentos/public/booked-slots?manicureId=${manicureData.id}&date=${dateInput.value}`);
+        const data = await response.json();
+        if (data.success && data.ocupados) {
+          availableSlots = availableSlots.filter(slot => !data.ocupados.includes(slot));
+        }
+      } catch (err) {
+        // Em caso de erro, mantém todos os horários disponíveis
+      }
 
       if (availableSlots.length === 0) {
         slotSelect.innerHTML = '<option value="">Nenhum horário disponível</option>';

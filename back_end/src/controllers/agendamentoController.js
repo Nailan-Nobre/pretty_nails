@@ -115,6 +115,48 @@ function getEmailManicureAgendamentoTemplate({ clienteNome, clienteEmail, client
 }
 
 
+// Buscar horários ocupados de uma manicure em uma data específica (rota pública)
+exports.obterHorariosOcupados = async (req, res) => {
+    const { manicureId, date } = req.query;
+
+    if (!manicureId || !date) {
+        return res.status(400).json({
+            success: false,
+            error: 'manicureId e date são obrigatórios'
+        });
+    }
+
+    try {
+        const { data: agendamentos, error } = await supabase
+            .from('agendamentos')
+            .select('data_hora')
+            .eq('manicure_id', manicureId)
+            .not('status', 'eq', 'cancelado')
+            .not('status', 'eq', 'recusado')
+            .gte('data_hora', `${date}T00:00:00`)
+            .lte('data_hora', `${date}T23:59:59`);
+
+        if (error) throw error;
+
+        const horariosOcupados = (agendamentos || []).map(a => {
+            const d = new Date(a.data_hora);
+            return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        });
+
+        res.json({
+            success: true,
+            ocupados: horariosOcupados
+        });
+    } catch (error) {
+        console.error('Erro ao buscar horários ocupados:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Erro ao buscar horários ocupados',
+            details: error.message
+        });
+    }
+};
+
 // Criar novo agendamento
 exports.criarAgendamento = async (req, res) => {
     const {

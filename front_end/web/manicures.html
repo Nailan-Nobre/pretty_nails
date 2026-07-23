@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manicures - Pretty Nails</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    :root {
+      --primary: #FF6B6B;
+      --primary-light: #FFB3B3;
+      --primary-dark: #E85555;
+      --bg: #FFF5F5;
+      --card: #FFFFFF;
+      --text: #2D2D2D;
+      --text-secondary: #777777;
+      --border: #E8E8E8;
+      --success: #4CAF50;
+      --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      padding: 24px 16px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-top: 4px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .search-section {
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .search-section label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .search-input-wrapper {
+      display: flex;
+      gap: 8px;
+    }
+
+    .search-input-wrapper input {
+      flex: 1;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--card);
+      transition: border-color 0.2s;
+    }
+
+    .search-input-wrapper input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .search-btn {
+      padding: 12px 20px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      white-space: nowrap;
+    }
+
+    .search-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(255, 107, 107, 0.35);
+    }
+
+    .manicure-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .manicure-card {
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .manicure-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .manicure-photo {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--primary-light);
+      flex-shrink: 0;
+    }
+
+    .manicure-photo-placeholder {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .manicure-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .manicure-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .manicure-location {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .manicure-stars {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      color: #F59E0B;
+    }
+
+    .manicure-stars .star-count {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .manicure-arrow {
+      color: var(--primary);
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+    }
+
+    .loading i {
+      font-size: 32px;
+      color: var(--primary);
+      margin-bottom: 8px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state i {
+      font-size: 40px;
+      color: var(--primary-light);
+      margin-bottom: 12px;
+    }
+
+    .empty-state h2 {
+      font-size: 18px;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .empty-state p {
+      font-size: 13px;
+    }
+
+    .results-info {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      padding-left: 4px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--primary-dark);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      z-index: 999;
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <h1><i class="fa-solid fa-scissors"></i> Pretty Nails</h1>
+    <p>Encontre manicures perto de você</p>
+  </div>
+
+  <div class="container">
+    <div class="search-section">
+      <label for="cityInput">Buscar por cidade</label>
+      <div class="search-input-wrapper">
+        <input type="text" id="cityInput" placeholder="Digite sua cidade..." />
+        <button class="search-btn" onclick="searchManicures()">
+          <i class="fa-solid fa-magnifying-glass"></i> Buscar
+        </button>
+      </div>
+    </div>
+
+    <div id="results"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_BASE = 'https://pretty-nails-do11.vercel.app';
+
+    document.getElementById('cityInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') searchManicures();
+    });
+
+    async function searchManicures() {
+      const city = document.getElementById('cityInput').value.trim();
+      if (!city) {
+        showToast('Digite o nome de uma cidade');
+        return;
+      }
+
+      const results = document.getElementById('results');
+      results.innerHTML = `
+        <div class="loading">
+          <i class="fa-solid fa-spinner"></i>
+          <p>Buscando manicures...</p>
+        </div>`;
+
+      try {
+        const response = await fetch(`${API_BASE}/api/manicures/public/by-city?cidade=${encodeURIComponent(city)}`);
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || 'Erro ao buscar manicures');
+        }
+
+        const manicures = data.manicures || [];
+
+        if (manicures.length === 0) {
+          results.innerHTML = `
+            <div class="empty-state">
+              <i class="fa-solid fa-user-slash"></i>
+              <h2>Nenhuma manicure encontrada</h2>
+              <p>Não encontramos manicures ativas em "${city}".<br>Tente otra cidade.</p>
+            </div>`;
+          return;
+        }
+
+        const listHtml = manicures.map(m => {
+          const photoHtml = m.foto
+            ? `<img src="${m.foto}" alt="${m.nome}" class="manicure-photo" onerror="this.outerHTML='<div class=\\'manicure-photo-placeholder\\'>✦</div>'">`
+            : `<div class="manicure-photo-placeholder">✦</div>`;
+
+          const starsHtml = m.estrelas != null
+            ? `<div class="manicure-stars">
+                 <i class="fa-solid fa-star"></i>
+                 <span class="star-count">${Number(m.estrelas).toFixed(1)}</span>
+               </div>`
+            : '';
+
+          const locationParts = [m.cidade, m.estado].filter(Boolean).join(', ');
+
+          return `
+            <a class="manicure-card" href="agendamento.html?slug=${encodeURIComponent(m.slug || '')}">
+              ${photoHtml}
+              <div class="manicure-info">
+                <div class="manicure-name">${m.nome || ''}</div>
+                <div class="manicure-location"><i class="fa-solid fa-location-dot"></i> ${locationParts}</div>
+                ${starsHtml}
+              </div>
+              <div class="manicure-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+            </a>`;
+        }).join('');
+
+        results.innerHTML = `
+          <div class="results-info">${manicures.length} manicure${manicures.length > 1 ? 's' : ''} encontrada${manicures.length > 1 ? 's' : ''} em ${city}</div>
+          <div class="manicure-list">${listHtml}</div>`;
+
+      } catch (err) {
+        results.innerHTML = `
+          <div class="empty-state">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <h2>Erro ao buscar</h2>
+            <p>${err.message}</p>
+          </div>`;
+      }
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+  </script>
+</body>
+
+</html>

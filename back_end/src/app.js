@@ -43,6 +43,8 @@ app.use('/auth', authRoutes);
 app.use('/feedback', feedbackRoutes); // Rota pública para visualizar feedbacks
 
 app.post('/api/agendamentos/public', agendamentoController.criarAgendamento);
+app.get('/api/agendamentos/public/booked-slots', agendamentoController.obterHorariosOcupados);
+app.get('/api/manicures/public/by-city', authController.listarManicuresPorCidade);
 
 // Rotas protegidas
 app.use('/api/users', authenticate, userRoutes);
