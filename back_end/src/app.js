@@ -3,6 +3,7 @@ const cors = require('cors');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 const agendamentoController = require('./controllers/agendamentoController');
+const authController = require('./controllers/authController');
 const { authenticate } = require('./middlewares/authMiddleware');
 const agendamentoRoutes = require('./routes/agendamentoRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes'); // Nova rota de feedbacks
