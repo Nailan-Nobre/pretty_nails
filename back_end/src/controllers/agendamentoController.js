@@ -299,7 +299,7 @@ exports.criarAgendamento = async (req, res) => {
 
         if (error) throw error;
 
-        const linkAgendamento = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/agendamento/${encodeURIComponent(manicure.slug || slug || '')}`;
+        const linkAgendamento = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/agendamento.html?slug=${encodeURIComponent(manicure.slug || slug || '')}`;
         const linkPainel = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/cadastro-e-login/cadastro-e-login.html`;
 
         const emailManicureSubject = 'Novo Agendamento - Pretty Nails';

@@ -947,7 +947,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String _getProfileUrl() {
     final slug = _manicure?.slug ?? '';
-    return 'https://pretty-nails-app.vercel.app/agendamento/$slug';
+    return 'https://pretty-nails-app.vercel.app/agendamento.html?slug=$slug';
   }
 
   void _showShareDialog(AppColors colors) {
