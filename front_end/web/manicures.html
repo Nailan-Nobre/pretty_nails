@@ -412,7 +412,7 @@
           const locationParts = [m.cidade, m.estado].filter(Boolean).join(', ');
 
           return `
-            <a class="manicure-card" href="agendamento.html?slug=${encodeURIComponent(m.slug || '')}">
+            <a class="manicure-card" href="/agendamento/${encodeURIComponent(m.slug || '')}">
               ${photoHtml}
               <div class="manicure-info">
                 <div class="manicure-name">${m.nome || ''}</div>
