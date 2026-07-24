@@ -477,6 +477,187 @@
     .upload-progress i {
       animation: spin 1s linear infinite;
     }
+
+    .fab-comments {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      border: none;
+      box-shadow: 0 4px 16px rgba(255, 107, 107, 0.45);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      z-index: 100;
+    }
+
+    .fab-comments:hover {
+      transform: scale(1.08);
+      box-shadow: 0 6px 20px rgba(255, 107, 107, 0.55);
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 200;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-sheet {
+      background: var(--card);
+      border-radius: 20px 20px 0 0;
+      width: 100%;
+      max-width: 600px;
+      max-height: 75vh;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+    }
+
+    .modal-overlay.active .modal-sheet {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header h2 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: #F5F5F5;
+      color: var(--text-secondary);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+    }
+
+    .modal-stats {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      background: var(--bg);
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+
+    .modal-stats .avg-number {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .modal-stats .avg-stars {
+      color: #F59E0B;
+      font-size: 14px;
+    }
+
+    .modal-stats .avg-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .feedback-item {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .feedback-item:last-child {
+      border-bottom: none;
+    }
+
+    .feedback-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .feedback-client {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .feedback-date {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .feedback-stars {
+      color: #F59E0B;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .feedback-service {
+      font-size: 12px;
+      color: var(--primary);
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .feedback-comment {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .modal-empty {
+      text-align: center;
+      padding: 30px 16px;
+      color: var(--text-secondary);
+    }
+
+    .modal-empty i {
+      font-size: 36px;
+      color: var(--primary-light);
+      margin-bottom: 10px;
+    }
+
+    .modal-empty p {
+      font-size: 13px;
+    }
   </style>
 </head>
 
@@ -494,6 +675,25 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <button class="fab-comments" id="fabComments" onclick="openCommentsModal()" title="Ver comentários">
+    <i class="fa-solid fa-comment"></i>
+  </button>
+
+  <div class="modal-overlay" id="commentsModal" onclick="closeCommentsModal(event)">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-comments" style="color:var(--primary);margin-right:6px;"></i> Comentários</h2>
+        <button class="modal-close" onclick="closeCommentsModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" id="commentsBody">
+        <div class="modal-empty">
+          <i class="fa-solid fa-spinner fa-spin"></i>
+          <p>Carregando...</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
     const API_BASE = 'https://pretty-nails-do11.vercel.app';
@@ -983,6 +1183,79 @@
       toast.textContent = msg;
       toast.style.display = 'block';
       setTimeout(() => { toast.style.display = 'none'; }, 4000);
+    }
+
+    function openCommentsModal() {
+      const modal = document.getElementById('commentsModal');
+      modal.classList.add('active');
+      loadComments();
+    }
+
+    function closeCommentsModal(event) {
+      if (event && event.target !== event.currentTarget) return;
+      document.getElementById('commentsModal').classList.remove('active');
+    }
+
+    async function loadComments() {
+      const body = document.getElementById('commentsBody');
+      body.innerHTML = `<div class="modal-empty"><i class="fa-solid fa-spinner fa-spin"></i><p>Carregando...</p></div>`;
+
+      try {
+        const response = await fetch(`${API_BASE}/feedback/manicure/${manicureData.id}`);
+        const data = await response.json();
+
+        if (!data.success) throw new Error(data.error);
+
+        const feedbacks = data.feedbacks || [];
+        const media = data.media_estrelas || 0;
+        const total = data.total_feedbacks || 0;
+
+        if (feedbacks.length === 0) {
+          body.innerHTML = `
+            <div class="modal-empty">
+              <i class="fa-solid fa-comment-slash"></i>
+              <p>Nenhum comentário ainda.</p>
+            </div>`;
+          return;
+        }
+
+        const starsFilled = (n) => '<i class="fa-solid fa-star"></i>'.repeat(n) + '<i class="fa-regular fa-star"></i>'.repeat(5 - n);
+
+        const feedbacksHtml = feedbacks.map(f => {
+          const servico = f.agendamento?.servico || '';
+          const dataFormatada = new Date(f.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+
+          return `
+            <div class="feedback-item">
+              <div class="feedback-top">
+                <span class="feedback-client">${f.cliente_nome || 'Cliente'}</span>
+                <span class="feedback-date">${dataFormatada}</span>
+              </div>
+              <div class="feedback-stars">${starsFilled(f.estrelas)}</div>
+              ${servico ? `<div class="feedback-service"><i class="fa-solid fa-scissors"></i> ${servico}</div>` : ''}
+              ${f.comentario ? `<div class="feedback-comment">${f.comentario}</div>` : ''}
+            </div>`;
+        }).join('');
+
+        body.innerHTML = `
+          <div class="modal-stats">
+            <div>
+              <div class="avg-number">${Number(media).toFixed(1)}</div>
+              <div class="avg-label">${total} avaliação${total > 1 ? 'ões' : ''}</div>
+            </div>
+            <div>
+              <div class="avg-stars">${starsFilled(Math.round(media))}</div>
+            </div>
+          </div>
+          ${feedbacksHtml}`;
+
+      } catch (err) {
+        body.innerHTML = `
+          <div class="modal-empty">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <p>Erro ao carregar comentários.</p>
+          </div>`;
+      }
     }
 
     init();
