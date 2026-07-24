@@ -342,24 +342,31 @@ exports.getManicureBySlug = async (req, res) => {
   }
 }
 
-// Listar manicures por cidade (rota pública)
+// Listar manicures por estado e/ou cidade (rota pública)
 exports.listarManicuresPorCidade = async (req, res) => {
   try {
-    const { cidade } = req.query
+    const { estado, cidade } = req.query
 
-    if (!cidade || cidade.trim().length === 0) {
+    if ((!estado || estado.trim().length === 0) && (!cidade || cidade.trim().length === 0)) {
       return res.status(400).json({
         success: false,
-        error: 'Cidade é obrigatória'
+        error: 'Informe o estado e/ou a cidade'
       })
     }
 
-    const { data: manicures, error } = await supabase
+    let query = supabase
       .from('manicures')
       .select('id, nome, foto, cidade, estado, slug, estrelas, bio')
-      .eq('cidade', cidade.trim())
       .eq('ativa', true)
-      .order('estrelas', { ascending: false })
+
+    if (estado && estado.trim().length > 0) {
+      query = query.eq('estado', estado.trim())
+    }
+    if (cidade && cidade.trim().length > 0) {
+      query = query.eq('cidade', cidade.trim())
+    }
+
+    const { data: manicures, error } = await query.order('estrelas', { ascending: false })
 
     if (error) throw error
 

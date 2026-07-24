@@ -66,21 +66,24 @@
       margin-bottom: 16px;
     }
 
-    .search-section label {
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group:last-of-type {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
       display: block;
       font-size: 14px;
       font-weight: 600;
       color: var(--text);
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
-    .search-input-wrapper {
-      display: flex;
-      gap: 8px;
-    }
-
-    .search-input-wrapper input {
-      flex: 1;
+    .form-group select {
+      width: 100%;
       padding: 12px 14px;
       border: 1.5px solid var(--border);
       border-radius: 10px;
@@ -89,24 +92,33 @@
       color: var(--text);
       background: var(--card);
       transition: border-color 0.2s;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23777' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
     }
 
-    .search-input-wrapper input:focus {
+    .form-group select:focus {
       outline: none;
       border-color: var(--primary);
     }
 
+    .form-group select:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     .search-btn {
-      padding: 12px 20px;
+      width: 100%;
+      padding: 14px;
       background: linear-gradient(135deg, var(--primary), var(--primary-dark));
       color: white;
       border: none;
       border-radius: 10px;
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
       transition: transform 0.2s, box-shadow 0.2s;
-      white-space: nowrap;
     }
 
     .search-btn:hover {
@@ -271,13 +283,21 @@
 
   <div class="container">
     <div class="search-section">
-      <label for="cityInput">Buscar por cidade</label>
-      <div class="search-input-wrapper">
-        <input type="text" id="cityInput" placeholder="Digite sua cidade..." />
-        <button class="search-btn" onclick="searchManicures()">
-          <i class="fa-solid fa-magnifying-glass"></i> Buscar
-        </button>
+      <div class="form-group">
+        <label for="estadoSelect">Estado</label>
+        <select id="estadoSelect" onchange="onEstadoChange()">
+          <option value="">Carregando estados...</option>
+        </select>
       </div>
+      <div class="form-group">
+        <label for="cidadeSelect">Cidade</label>
+        <select id="cidadeSelect" disabled>
+          <option value="">Selecione o estado primeiro</option>
+        </select>
+      </div>
+      <button class="search-btn" onclick="searchManicures()">
+        <i class="fa-solid fa-magnifying-glass"></i> Buscar
+      </button>
     </div>
 
     <div id="results"></div>
@@ -287,15 +307,58 @@
 
   <script>
     const API_BASE = 'https://pretty-nails-do11.vercel.app';
+    const IBGE_API = 'https://servicodados.ibge.gov.br/api/v1/localidades';
 
-    document.getElementById('cityInput').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') searchManicures();
-    });
+    let estados = [];
+    let cidades = [];
+
+    async function loadEstados() {
+      try {
+        const response = await fetch(`${IBGE_API}/estados?orderBy=nome`);
+        const data = await response.json();
+        estados = data.map(e => ({ sigla: e.sigla, nome: e.nome }));
+
+        const select = document.getElementById('estadoSelect');
+        select.innerHTML = '<option value="">Selecione o estado</option>' +
+          estados.map(e => `<option value="${e.sigla}">${e.nome}</option>`).join('');
+      } catch (err) {
+        document.getElementById('estadoSelect').innerHTML = '<option value="">Erro ao carregar estados</option>';
+      }
+    }
+
+    async function onEstadoChange() {
+      const sigla = document.getElementById('estadoSelect').value;
+      const cidadeSelect = document.getElementById('cidadeSelect');
+
+      if (!sigla) {
+        cidadeSelect.innerHTML = '<option value="">Selecione o estado primeiro</option>';
+        cidadeSelect.disabled = true;
+        cidades = [];
+        return;
+      }
+
+      cidadeSelect.innerHTML = '<option value="">Carregando cidades...</option>';
+      cidadeSelect.disabled = true;
+
+      try {
+        const response = await fetch(`${IBGE_API}/estados/${sigla}/municipios?orderBy=nome`);
+        const data = await response.json();
+        cidades = data.map(c => c.nome);
+
+        cidadeSelect.innerHTML = '<option value="">Selecione a cidade (opcional)</option>' +
+          cidades.map(c => `<option value="${c}">${c}</option>`).join('');
+        cidadeSelect.disabled = false;
+      } catch (err) {
+        cidadeSelect.innerHTML = '<option value="">Erro ao carregar cidades</option>';
+      }
+    }
 
     async function searchManicures() {
-      const city = document.getElementById('cityInput').value.trim();
-      if (!city) {
-        showToast('Digite o nome de uma cidade');
+      const estado = document.getElementById('estadoSelect').value;
+      const cidade = document.getElementById('cidadeSelect').value;
+
+      if (!estado && !cidade) {
+        showToast('Selecione o estado e/ou a cidade');
         return;
       }
 
@@ -307,7 +370,11 @@
         </div>`;
 
       try {
-        const response = await fetch(`${API_BASE}/api/manicures/public/by-city?cidade=${encodeURIComponent(city)}`);
+        const params = new URLSearchParams();
+        if (estado) params.append('estado', estado);
+        if (cidade) params.append('cidade', cidade);
+
+        const response = await fetch(`${API_BASE}/api/manicures/public/by-city?${params.toString()}`);
         const data = await response.json();
 
         if (!data.success) {
@@ -317,11 +384,12 @@
         const manicures = data.manicures || [];
 
         if (manicures.length === 0) {
+          const localStr = [cidade, estado].filter(Boolean).join(' - ');
           results.innerHTML = `
             <div class="empty-state">
               <i class="fa-solid fa-user-slash"></i>
               <h2>Nenhuma manicure encontrada</h2>
-              <p>Não encontramos manicures ativas em "${city}".<br>Tente otra cidade.</p>
+              <p>Não encontramos manicures ativas em ${localStr}.<br>Tente outro filtro.</p>
             </div>`;
           return;
         }
@@ -352,8 +420,9 @@
             </a>`;
         }).join('');
 
+        const filterLabel = [cidade, estado].filter(Boolean).join(', ');
         results.innerHTML = `
-          <div class="results-info">${manicures.length} manicure${manicures.length > 1 ? 's' : ''} encontrada${manicures.length > 1 ? 's' : ''} em ${city}</div>
+          <div class="results-info">${manicures.length} manicure${manicures.length > 1 ? 's' : ''} encontrada${manicures.length > 1 ? 's' : ''} em ${filterLabel}</div>
           <div class="manicure-list">${listHtml}</div>`;
 
       } catch (err) {
@@ -372,6 +441,8 @@
       toast.style.display = 'block';
       setTimeout(() => { toast.style.display = 'none'; }, 3000);
     }
+
+    loadEstados();
   </script>
 </body>
 
