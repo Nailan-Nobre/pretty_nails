@@ -7,6 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import '../theme/theme_provider.dart';
 import '../models/manicure.dart';
 import '../services/auth_service.dart';
+import '../services/tutorial_service.dart';
+import '../components/tutorial_overlay.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -19,6 +21,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Manicure? _manicure;
   bool _loading = true;
   bool _saving = false;
+  bool _showScheduleTutorial = false;
 
   final _formKey = GlobalKey<FormState>();
   final _nomeController = TextEditingController();
@@ -49,6 +52,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.initState();
     _loadProfile();
     _carregarEstados();
+    _checkScheduleTutorial();
+  }
+
+  Future<void> _checkScheduleTutorial() async {
+    final hasSeen = await TutorialService.hasSeenScheduleTutorial();
+    if (!hasSeen && mounted) {
+      setState(() => _showScheduleTutorial = true);
+    }
+  }
+
+  void _onScheduleTutorialDismiss() async {
+    await TutorialService.markScheduleTutorialSeen();
+    if (mounted) {
+      setState(() => _showScheduleTutorial = false);
+    }
   }
 
   @override
@@ -311,126 +329,128 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: colors.bgPrimary,
-      appBar: AppBar(
-        title: const Text('Editar Perfil'),
-        backgroundColor: colors.primary,
-        foregroundColor: colors.textLight,
-        elevation: 0,
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildPhotoSection(colors),
-            const SizedBox(height: 20),
-            _buildSectionTitle('Informações Pessoais', colors),
-            const SizedBox(height: 12),
-            _buildTextField(
-              controller: _nomeController,
-              label: 'Nome',
-              icon: Icons.person_outline,
-              colors: colors,
-              validator: (v) => v == null || v.trim().isEmpty ? 'Nome é obrigatório' : null,
-            ),
-            const SizedBox(height: 12),
-            _buildTextField(
-              controller: _telefoneController,
-              label: 'Telefone',
-              icon: Icons.phone_outlined,
-              colors: colors,
-              keyboardType: TextInputType.phone,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(11),
-                _TelefoneFormatter(),
-              ],
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _selectedEstado,
-              style: TextStyle(color: colors.textPrimary, fontSize: 14),
-              decoration: InputDecoration(
-                labelText: 'Estado',
-                prefixIcon: Icon(Icons.location_on_outlined, color: colors.primary),
-                labelStyle: TextStyle(color: colors.textSecondary),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: colors.primary, width: 2),
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: colors.bgPrimary,
+          appBar: AppBar(
+            title: const Text('Editar Perfil'),
+            backgroundColor: colors.primary,
+            foregroundColor: colors.textLight,
+            elevation: 0,
+          ),
+          body: Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _buildPhotoSection(colors),
+                const SizedBox(height: 20),
+                _buildSectionTitle('Informações Pessoais', colors),
+                const SizedBox(height: 12),
+                _buildTextField(
+                  controller: _nomeController,
+                  label: 'Nome',
+                  icon: Icons.person_outline,
+                  colors: colors,
+                  validator: (v) => v == null || v.trim().isEmpty ? 'Nome é obrigatório' : null,
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: colors.borderColor),
+                const SizedBox(height: 12),
+                _buildTextField(
+                  controller: _telefoneController,
+                  label: 'Telefone',
+                  icon: Icons.phone_outlined,
+                  colors: colors,
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(11),
+                    _TelefoneFormatter(),
+                  ],
                 ),
-                filled: true,
-                fillColor: colors.cardBg,
-              ),
-              items: _estados.map((estado) {
-                return DropdownMenuItem<String>(
-                  value: estado['sigla'],
-                  child: Text(estado['nome']!),
-                );
-              }).toList(),
-              onChanged: _onEstadoChanged,
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _selectedCidade,
-              style: TextStyle(color: colors.textPrimary, fontSize: 14),
-              decoration: InputDecoration(
-                labelText: 'Cidade',
-                prefixIcon: Icon(Icons.location_city_outlined, color: colors.primary),
-                labelStyle: TextStyle(color: colors.textSecondary),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: colors.primary, width: 2),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: _selectedEstado,
+                  style: TextStyle(color: colors.textPrimary, fontSize: 14),
+                  decoration: InputDecoration(
+                    labelText: 'Estado',
+                    prefixIcon: Icon(Icons.location_on_outlined, color: colors.primary),
+                    labelStyle: TextStyle(color: colors.textSecondary),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: colors.primary, width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: colors.borderColor),
+                    ),
+                    filled: true,
+                    fillColor: colors.cardBg,
+                  ),
+                  items: _estados.map((estado) {
+                    return DropdownMenuItem<String>(
+                      value: estado['sigla'],
+                      child: Text(estado['nome']!),
+                    );
+                  }).toList(),
+                  onChanged: _onEstadoChanged,
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: colors.borderColor),
-                ),
-                filled: true,
-                fillColor: colors.cardBg,
-              ),
-              items: _cidadesDisabled
-                  ? []
-                  : _cidades.map((cidade) {
-                      return DropdownMenuItem<String>(
-                        value: cidade['nome'],
-                        child: Text(cidade['nome']!),
-                      );
-                    }).toList(),
-              onChanged: _cidadesDisabled
-                  ? (value) {
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Atenção'),
-                          content: const Text('Escolha o estado primeiro.'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(ctx).pop(),
-                              child: const Text('OK'),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: _selectedCidade,
+                  style: TextStyle(color: colors.textPrimary, fontSize: 14),
+                  decoration: InputDecoration(
+                    labelText: 'Cidade',
+                    prefixIcon: Icon(Icons.location_city_outlined, color: colors.primary),
+                    labelStyle: TextStyle(color: colors.textSecondary),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: colors.primary, width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: colors.borderColor),
+                    ),
+                    filled: true,
+                    fillColor: colors.cardBg,
+                  ),
+                  items: _cidadesDisabled
+                      ? []
+                      : _cidades.map((cidade) {
+                          return DropdownMenuItem<String>(
+                            value: cidade['nome'],
+                            child: Text(cidade['nome']!),
+                          );
+                        }).toList(),
+                  onChanged: _cidadesDisabled
+                      ? (value) {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Atenção'),
+                              content: const Text('Escolha o estado primeiro.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(),
+                                  child: const Text('OK'),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      );
-                    }
-                  : _onCidadeChanged,
-              disabledHint: Text(
-                _selectedEstado == null
-                    ? 'Escolha o estado primeiro'
-                    : (_cidadesLoading ? 'Carregando cidades...' : 'Selecione a cidade'),
-                style: TextStyle(color: colors.textSecondary),
-              ),
-              icon: _cidadesDisabled
-                  ? Icon(Icons.lock_outline, color: colors.textSecondary)
-                  : Icon(Icons.arrow_drop_down, color: colors.textSecondary),
-            ),
+                          );
+                        }
+                      : _onCidadeChanged,
+                  disabledHint: Text(
+                    _selectedEstado == null
+                        ? 'Escolha o estado primeiro'
+                        : (_cidadesLoading ? 'Carregando cidades...' : 'Selecione a cidade'),
+                    style: TextStyle(color: colors.textSecondary),
+                  ),
+                  icon: _cidadesDisabled
+                      ? Icon(Icons.lock_outline, color: colors.textSecondary)
+                      : Icon(Icons.arrow_drop_down, color: colors.textSecondary),
+                ),
             const SizedBox(height: 20),
             _buildSectionTitle('Sobre Mim', colors),
             const SizedBox(height: 12),
@@ -495,12 +515,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         'Salvar Alterações',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
+                ),
               ),
-            ),
-            const SizedBox(height: 30),
-          ],
+              const SizedBox(height: 30),
+            ],
+          ),
         ),
-      ),
+        ),
+        if (_showScheduleTutorial)
+          TutorialOverlay(
+            icon: Icons.schedule,
+            title: 'Configurar Horarios',
+            description: 'Configure seus dias de trabalho, horarios e intervalo entre atendimentos na tela de edicao de perfil.',
+            onDismiss: _onScheduleTutorialDismiss,
+          ),
+      ],
     );
   }
 

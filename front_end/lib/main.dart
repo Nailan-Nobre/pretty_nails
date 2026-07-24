@@ -7,6 +7,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/theme_provider.dart';
 import 'components/navbar.dart';
+import 'components/tutorial_overlay.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/home_screen.dart';
@@ -18,6 +19,7 @@ import 'screens/forgot_password_screen.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
 import 'services/onesignal_service.dart';
+import 'services/tutorial_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -113,6 +115,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  int? _activeTutorialStep;
   final List<Widget> _screens = const [
     HomeScreen(),
     CalendarScreen(),
@@ -121,17 +124,57 @@ class _MainScreenState extends State<MainScreen> {
     SettingsScreen(),
   ];
 
+  static const _tutorialData = [
+    {
+      'icon': Icons.home,
+      'title': 'Painel de Trabalho',
+      'description': 'Aqui voce ve suas estatisticas, feedbacks de clientes e configura seus horarios de trabalho.',
+    },
+    {
+      'icon': Icons.calendar_month,
+      'title': 'Calendario',
+      'description': 'Visualize seus agendamentos no calendario e veja sua agenda do dia.',
+    },
+    {
+      'icon': Icons.event,
+      'title': 'Agendamentos',
+      'description': 'Gerencie seus agendamentos: confirme, recuse ou acompanhe o historico.',
+    },
+    {
+      'icon': Icons.person,
+      'title': 'Perfil',
+      'description': 'Acesse e edite seu perfil, visualize suas estatisticas detalhadas.',
+    },
+  ];
+
   Timer? _badgeTimer;
 
   @override
   void initState() {
     super.initState();
     _startBadgePolling();
+    _checkTutorialForStep(0);
     OneSignalService.setNotificationOpenedCallback(() {
       if (mounted) {
         setState(() => _selectedIndex = 2);
       }
     });
+  }
+
+  Future<void> _checkTutorialForStep(int step) async {
+    final hasSeen = await TutorialService.hasCompletedStep(step);
+    if (!hasSeen && mounted && step < _tutorialData.length) {
+      setState(() => _activeTutorialStep = step);
+    }
+  }
+
+  void _onTutorialDismiss() async {
+    if (_activeTutorialStep != null) {
+      await TutorialService.markStepCompleted(_activeTutorialStep!);
+    }
+    if (mounted) {
+      setState(() => _activeTutorialStep = null);
+    }
   }
 
   @override
@@ -158,21 +201,35 @@ class _MainScreenState extends State<MainScreen> {
     final colors = ThemeProvider.of(context).colors;
     final hasPending = NotificationService.pendingCount > 0;
 
-    return Scaffold(
-      backgroundColor: colors.bgPrimary,
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: CustomNavBar(
-        currentIndex: _selectedIndex,
-        onTabSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-          if (index == 2) {
-            OneSignalService.clearBadge();
-          }
-        },
-        badges: [0, 0, hasPending ? NotificationService.pendingCount : 0, 0],
-      ),
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: colors.bgPrimary,
+          body: _screens[_selectedIndex],
+          bottomNavigationBar: CustomNavBar(
+            currentIndex: _selectedIndex,
+            onTabSelected: (index) {
+              setState(() {
+                _selectedIndex = index;
+              });
+              if (index == 2) {
+                OneSignalService.clearBadge();
+              }
+              if (index < _tutorialData.length) {
+                _checkTutorialForStep(index);
+              }
+            },
+            badges: [0, 0, hasPending ? NotificationService.pendingCount : 0, 0],
+          ),
+        ),
+        if (_activeTutorialStep != null)
+          TutorialOverlay(
+            icon: _tutorialData[_activeTutorialStep!]['icon'] as IconData,
+            title: _tutorialData[_activeTutorialStep!]['title'] as String,
+            description: _tutorialData[_activeTutorialStep!]['description'] as String,
+            onDismiss: _onTutorialDismiss,
+          ),
+      ],
     );
   }
 }

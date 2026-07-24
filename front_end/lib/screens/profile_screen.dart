@@ -19,6 +19,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   Manicure? _manicure;
   bool _loading = true;
+  bool _completionExpanded = false;
 
   @override
   void initState() {
@@ -258,6 +259,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               SliverList(
                 delegate: SliverChildListDelegate([
+                  _buildCompletionCard(colors),
                   _buildBioCard(colors),
                   _buildStatsCard(colors),
                   _buildWorkDaysCard(colors),
@@ -283,6 +285,217 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Icons.person,
         size: 70,
         color: colors.primary,
+      ),
+    );
+  }
+
+  Map<String, bool> _getCompletionItems() {
+    final m = _manicure;
+    return {
+      'Foto de perfil': m?.foto != null && m!.foto!.isNotEmpty,
+      'Telefone': m?.telefone != null && m!.telefone!.isNotEmpty,
+      'Localização': (m?.estado != null && m!.estado!.isNotEmpty) && (m?.cidade != null && m!.cidade!.isNotEmpty),
+      'Bio': m?.bio != null && m!.bio!.isNotEmpty,
+      'Dias de trabalho': m?.diasTrabalho != null && m!.diasTrabalho!.isNotEmpty,
+      'Horários de trabalho': m?.horarios != null && m!.horarios!.isNotEmpty,
+      'Serviços': m?.servicos != null && m!.servicos!.isNotEmpty,
+      'Regras de atendimento': m?.regras != null && m!.regras!.isNotEmpty,
+    };
+  }
+
+  double _getCompletionPercentage() {
+    final items = _getCompletionItems();
+    final completed = items.values.where((v) => v).length;
+    return completed / items.length;
+  }
+
+  String _getCompletionMessage(double percentage) {
+    if (percentage >= 1.0) {
+      return 'Seu perfil esta completo! Excelente!';
+    } else if (percentage >= 0.75) {
+      return 'Quase la! So faltam alguns ajustes.';
+    } else if (percentage >= 0.5) {
+      return 'Bom progresso! Continue completando seu perfil.';
+    } else if (percentage >= 0.25) {
+      return 'Seu perfil esta comecando a se formar. Continue!';
+    } else {
+      return 'Complete seu perfil para atrair mais clientes!';
+    }
+  }
+
+  Color _getCompletionColor(double percentage, AppColors colors) {
+    if (percentage >= 0.75) return colors.success;
+    if (percentage >= 0.5) return colors.info;
+    if (percentage >= 0.25) return colors.warning;
+    return colors.danger;
+  }
+
+  Widget _buildCompletionCard(AppColors colors) {
+    final items = _getCompletionItems();
+    final percentage = _getCompletionPercentage();
+    final message = _getCompletionMessage(percentage);
+    final completionColor = _getCompletionColor(percentage, colors);
+    final percentageText = '${(percentage * 100).round()}%';
+
+    if (percentage >= 1.0) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: colors.shadowSm, blurRadius: 12, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: completionColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.trending_up, color: completionColor, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Completar Perfil',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: colors.primary),
+                    ),
+                    Text(
+                      message,
+                      style: TextStyle(fontSize: 12, color: colors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: completionColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  percentageText,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: completionColor),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: percentage,
+              minHeight: 8,
+              backgroundColor: colors.bgTertiary,
+              valueColor: AlwaysStoppedAnimation<Color>(completionColor),
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...(_completionExpanded ? items.entries : items.entries.take(3)).map(
+            (entry) => _buildCompletionItem(entry.key, entry.value, completionColor, colors),
+          ),
+          if (items.length > 3) ...[
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: () => setState(() => _completionExpanded = !_completionExpanded),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _completionExpanded ? 'Ver menos' : 'Ver mais',
+                    style: TextStyle(fontSize: 12, color: colors.primary, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    _completionExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    size: 16,
+                    color: colors.primary,
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                ).then((_) {
+                  _loadFromCache();
+                  _loadFromServer();
+                });
+              },
+              icon: Icon(Icons.edit, size: 16, color: colors.textLight),
+              label: Text(
+                percentage >= 1.0 ? 'Editar Perfil' : 'Completar Agora',
+                style: TextStyle(fontSize: 13, color: colors.textLight, fontWeight: FontWeight.w600),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary,
+                foregroundColor: colors.textLight,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompletionItem(String label, bool completed, Color completionColor, AppColors colors) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: completed ? completionColor.withValues(alpha: 0.15) : colors.bgTertiary,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: completed ? completionColor : colors.borderColor,
+                width: 1.5,
+              ),
+            ),
+            child: completed
+                ? Icon(Icons.check, size: 12, color: completionColor)
+                : Icon(Icons.close, size: 10, color: colors.textSecondary),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                color: completed ? colors.textPrimary : colors.textSecondary,
+                decoration: completed ? TextDecoration.lineThrough : null,
+                decorationColor: colors.textSecondary,
+              ),
+            ),
+          ),
+          if (completed)
+            Icon(Icons.check_circle, size: 14, color: completionColor)
+          else
+            Icon(Icons.arrow_forward_ios, size: 12, color: colors.textSecondary),
+        ],
       ),
     );
   }

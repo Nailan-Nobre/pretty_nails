@@ -279,7 +279,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             _buildEmptyChart('Nenhum dado mensal disponível', colors)
           else
             SizedBox(
-              height: 160,
+              height: 200,
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   return Row(
@@ -287,8 +287,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     children: List.generate(dadosConcluidos.length, (i) {
                       final c = (dadosConcluidos[i] ?? 0) as int;
                       final ca = (dadosCancelados[i] ?? 0) as int;
-                      final hConcl = maxVal > 0 ? (c / maxVal) * (constraints.maxHeight - 24) : 0.0;
-                      final hCancel = maxVal > 0 ? (ca / maxVal) * (constraints.maxHeight - 24) : 0.0;
+                      final hConcl = maxVal > 0 ? (c / maxVal) * (constraints.maxHeight - 40) : 0.0;
+                      final hCancel = maxVal > 0 ? (ca / maxVal) * (constraints.maxHeight - 40) : 0.0;
                       final label = i < labels.length ? (labels[i] as String).substring(0, 3) : '';
 
                       return Expanded(
@@ -306,13 +306,13 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                                 children: [
                                   Container(
                                     width: 8,
-                                    height: hConcl.clamp(1.0, constraints.maxHeight - 24),
+                                    height: hConcl.clamp(1.0, constraints.maxHeight - 40),
                                     decoration: BoxDecoration(color: colors.success, borderRadius: BorderRadius.circular(2)),
                                   ),
                                   const SizedBox(width: 2),
                                   Container(
                                     width: 8,
-                                    height: hCancel.clamp(1.0, constraints.maxHeight - 24),
+                                    height: hCancel.clamp(1.0, constraints.maxHeight - 40),
                                     decoration: BoxDecoration(color: colors.danger, borderRadius: BorderRadius.circular(2)),
                                   ),
                                 ],
